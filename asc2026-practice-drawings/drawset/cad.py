@@ -127,7 +127,8 @@ def fmt_ftin(feet: float, denom: int = 16, zero_inch: bool = True) -> str:
     inch = int(whole_in % 12)
     s_in = str(inch)
     if frac:
-        s_in = (f"{inch} " if inch else "") + f"{frac.numerator}/{frac.denominator}"
+        show_inch = inch or ft or zero_inch
+        s_in = (f"{inch} " if show_inch else "") + f"{frac.numerator}/{frac.denominator}"
     if ft == 0 and not zero_inch:
         out = f'{s_in}"'
     else:

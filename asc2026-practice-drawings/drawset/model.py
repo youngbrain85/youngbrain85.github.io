@@ -419,10 +419,10 @@ HARDWARE_SETS = {
                                        "2 EA RIM EXIT DEVICES (1 NIGHT LATCH, 1 DUMMY)", "2 EA SURFACE CLOSERS",
                                        "1 EA THRESHOLD", "1 SET WEATHERSTRIP", "2 EA DOOR SWEEPS", "1 EA RAIN DRIP"]),
     "HW-7": ("STOREFRONT ENTRANCE", ["2 EA CONTINUOUS HINGES (BY STOREFRONT MFR.)", "2 EA CONCEALED VERTICAL ROD EXIT DEVICES",
-                                     "2 EA OFFSET PULLS", "2 EA OVERHEAD CONCEALED CLOSERS", "1 EA ELEC. STRIKE + CARD READER PREP",
+                                     "2 EA OFFSET PULLS", "2 EA OVERHEAD CONCEALED CLOSERS", "ELECTRIFIED LATCH RETRACTION (BOTH DEVICES) + 2 POWER TRANSFERS, CARD READER PREP",
                                      "1 EA THRESHOLD", "1 SET WEATHERSTRIP", "1 EA ACCESSIBLE OPERATOR (ONE LEAF)"]),
     "HW-8": ("CROSS-CORRIDOR PAIR", ["6 EA HINGES", "2 EA PUSH/PULL SETS", "2 EA SURFACE CLOSERS",
-                                     "2 EA KICK PLATES", "2 EA MAGNETIC HOLD-OPENS (BY DIV. 26 / 28)", "1 EA ASTRAGAL (OVERLAPPING)"]),
+                                     "2 EA KICK PLATES", "2 EA MAGNETIC HOLD-OPENS (BY DIV. 26 / 28)", "1 SET SPLIT ASTRAGAL (NON-LATCHING PAIR)"]),
     "HW-9": ("STOREROOM / CUSTODIAL", ["3 EA HINGES", "1 EA STOREROOM LOCKSET (ANSI F07)", "1 EA SURFACE CLOSER",
                                        "1 EA KICK PLATE", "1 EA WALL STOP", "3 EA SILENCERS"]),
     "HW-10": ("OFFICE / WORKROOM", ["3 EA HINGES", "1 EA OFFICE LOCKSET (ANSI F04)", "1 EA WALL STOP",
@@ -508,12 +508,15 @@ for lev, off in (("L1", 0), ("L2", 100)):
                    remarks="FRT PLYWOOD BACKBOARD AT IDF WALL"), tag_at=(45, 6))
     for i, x0 in enumerate((60, 90, 120)):
         _room(P(113 + i), "CLASSROOM", lev, R(x0, 0, x0 + 30, 30), FIN_CLASS)
-    _room(P(100), "CORRIDOR", lev, R(0, 30, 150, 42), FIN_CORR, tag_at=(105.5, 36.0))
+    _room(P(100), "CORRIDOR", lev, R(0, 30, 150, 42),
+          dict(FIN_CORR, floor="LVT-1 / LVT-2 / WOM-1",
+               remarks="LVT-2 2'-0\" BANDS AT GRID LINES; WOM-1 AT EAST ENTRANCE") if lev == "L1" else FIN_CORR,
+          tag_at=(105.5, 36.0))
     _room("ST-1" if lev == "L1" else "ST-1 ", "STAIR 1", lev, R(0, 0, 12, 30), FIN_STAIR,
           tag_at=(6, 20.5))
     _room("ST-2" if lev == "L1" else "ST-2 ", "STAIR 2", lev, R(138, 42, 150, 72), FIN_STAIR,
           tag_at=(144, 51.5))
-_room("100A", "LINK", "L1", R(EXIST_FACE_X, 30, 0, 42), dict(FIN_CORR, remarks=""),
+_room("100A", "LINK", "L1", R(EXIST_FACE_X, 30, 0, 42), dict(FIN_CORR, floor="LVT-1", remarks=""),
       tag_at=(-18, 36))
 # normalise duplicated stair keys
 for r in ROOMS:
@@ -529,7 +532,7 @@ FINISHES = {
     "VCT-1": "VINYL COMPOSITION TILE 12\"x12\"x1/8\", FIELD COLOR",
     "VCT-2": "VINYL COMPOSITION TILE 12\"x12\"x1/8\", ACCENT COLOR",
     "LVT-1": "LUXURY VINYL TILE 6\"x36\" PLANK, 20 MIL WEAR LAYER, FIELD",
-    "LVT-2": "LUXURY VINYL TILE 18\"x18\", ACCENT BANDS",
+    "LVT-2": "LUXURY VINYL TILE 24\"x24\", ACCENT BANDS (ONE TILE = 2'-0\" BAND)",
     "CPT-1": "CARPET TILE 24\"x24\", SOLUTION-DYED NYLON, QUARTER TURN",
     "WOM-1": "WALK-OFF CARPET TILE 24\"x24\" (RECESSED 1/4\" SLAB DEPRESSION)",
     "PT-1": "PORCELAIN FLOOR TILE 12\"x24\", THINSET, EPOXY GROUT",
@@ -542,7 +545,7 @@ FINISHES = {
     # walls
     "PNT-1": "BLOCK FILLER + 2 COATS LATEX EGGSHELL (CMU); PRIMER + 2 COATS (GWB)",
     "PNT-2": "BLOCK FILLER + 2 COATS WATERBORNE EPOXY",
-    "CT-1": "GLAZED CERAMIC WALL TILE 4\"x12\", THINSET ON CMU, BULLNOSE CAP",
+    "CT-1": "GLAZED CERAMIC WALL TILE 4\"x12\", THINSET ON CMU (1/2\" CEMENT BACKER BOARD AT STUD WALLS), BULLNOSE CAP",
     # ceilings
     "ACT-1": "ACOUSTICAL PANEL CEILING 24\"x24\" REVEAL EDGE, 15/16\" GRID",
     "ACT-2": "VINYL-FACED WASHABLE ACOUSTICAL PANEL 24\"x24\", 15/16\" GRID",
