@@ -3160,9 +3160,603 @@ def draw_c400(sh):
 
 
 # ========================================================================================
+# 13. C-500 CIVIL DETAILS
+# ========================================================================================
+from .cad import break_line, fmt_ftin  # noqa: E402
+
+DS = 6.2          # detail label size (pt)
+IN_ = 1 / 12.0
+
+
+def _cv(sh, cell, scale, ext, dx=0.0, dy=0.0):
+    """view fitting model extents ext=(x0, y0, x1, y1) centered in the cell above the title"""
+    x0, y0, x1, y1 = ext
+    w, h = (x1 - x0) * scale, (y1 - y0) * scale
+    cx = cell["x"] + cell["w"] / 2 + dx
+    cy = cell["y"] + 0.7 + (cell["h"] - 0.75) / 2 + dy
+    return sh.view(cx - w / 2 - x0 * scale, cy - h / 2 - y0 * scale, scale)
+
+
+def _dt(sh, cell, n, title, scale):
+    sh.view_title(cell["x"] + 0.18, cell["y"] + 0.42, n, title, scale, width=cell["w"] - 0.8)
+
+
+def dl(v, target, at, lines, side=None, size=DS, arrow="arrow"):
+    callout(v, target, at, lines, size, side=side, arrow=arrow)
+
+
+def _earth(v, pts):
+    v.polygon(pts, lw=None, hatch="earth", hatch_kw=dict(scale=0.9, w="hair"))
+
+
+def _gravel(v, pts, lw="thin"):
+    v.polygon(pts, lw=lw, fill="white", hatch="gravel", hatch_kw=dict(scale=0.8))
+
+
+def _concrete(v, pts, lw="med"):
+    v.polygon(pts, lw=lw, fill="white", hatch="concrete", hatch_kw=dict(scale=0.9))
+
+
+def _grass(v, x0, x1, y, col="black"):
+    v.line((x0, y), (x1, y), lw="thin", color=col)
+    n = int(abs(x1 - x0) / v.paper_len(0.06))
+    for k in range(n):
+        x = x0 + (x1 - x0) * (k + 0.5) / max(n, 1)
+        h = v.paper_len(0.035)
+        v.line((x, y), (x - h * 0.4, y + h), lw="hair")
+        v.line((x, y), (x + h * 0.4, y + h), lw="hair")
+
+
+def det_sidewalk(sh, c):
+    v = _cv(sh, c, 0.75, (-3.6, -3.4, 7.6, 2.4), dy=0.25)
+    W, t, b = 5.0, 5 * IN_, 4 * IN_
+    _earth(v, [(-1.5, -t - b), (W + 1.5, -t - b), (W + 1.5, -1.6), (-1.5, -1.6)])
+    _gravel(v, [(-0.5, -t - b), (W + 0.5, -t - b), (W + 0.5, -t), (-0.5, -t)])
+    sl = 0.015 * W
+    _concrete(v, [(0, -t + sl), (W, -t), (W, 0.0), (0, sl)])
+    v.polygon([(-1.5, -0.04 + sl - 0.25), (-0.0, sl - 0.04), (0, -t - b + 0.02), (-0.5, -t - b),
+               (-1.5, -t - b)], lw=None, fill="white")
+    v.polygon([(W, -0.04), (W + 1.5, -0.04 - 0.08), (W + 1.5, -t - b), (W + 0.5, -t - b),
+               (W, -t)], lw=None, fill="white")
+    v.polygon([(-1.5, sl - 0.29), (0, sl - 0.04), (0, -t + sl), (-0.5, -t - b), (-1.5, -t - b)],
+              lw=None, hatch="earth", hatch_kw=dict(scale=0.9, w="hair"))
+    v.polygon([(W, -0.04), (W + 1.5, -0.12), (W + 1.5, -t - b), (W + 0.5, -t - b), (W, -t)],
+              lw=None, hatch="earth", hatch_kw=dict(scale=0.9, w="hair"))
+    _grass(v, -1.5, 0.0, sl - 0.04)
+    _grass(v, W, W + 1.5, -0.04)
+    break_line(v, (-1.5, -1.6), (-1.5, sl))
+    break_line(v, (W + 1.5, -1.6), (W + 1.5, 0.1))
+    v.dim((0, sl), (W, 0.0), 0.9, text="5'-0\" MIN. (AS SHOWN)")
+    v.dim((W, 0.0), (W, -t), -0.0, text="")
+    dl(v, (1.5, sl * 0.7), (-3.4, 1.6), ["5\" PCC SIDEWALK, 4,000 PSI,", "AIR-ENTRAINED, BROOM FINISH"], "r")
+    dl(v, (3.5, -t - b / 2), (-3.4, -2.3), ["4\" CA-6 AGGREGATE BASE,", "COMPACTED TO 95% STD. PROCTOR"], "r")
+    dl(v, (2.0, -1.2), (-3.4, -3.0), ["COMPACTED SUBGRADE"], "r")
+    dl(v, (W - 0.03, -0.02), (5.6, 1.4), ["1/4\" R TOOLED EDGE"], "r")
+    dl(v, (W + 0.8, -0.08), (5.9, -2.0), ["SOD ON 6\" TOPSOIL,", "1/2\" BELOW WALK"], "r")
+    slope_arrow(v, (1.2, sl * 0.76 + 0.22), (3.8, sl * 0.24 + 0.22), "1.5% (2% MAX.)", size=DS - 0.4)
+    # joint plan (inset)
+    pv = sh.view(c["x"] + c["w"] - 2.25, c["y"] + 1.05, 1 / 16.0)
+    pv.rect(0, 0, 25, 5, lw="thin")
+    for x in (5, 10, 15, 20):
+        pv.line((x, 0), (x, 5), lw="fine", dash="dashed")
+    pv.line((25, 0), (25, 5), lw="med")
+    Paper(sh.c).text((c["x"] + c["w"] - 2.25, c["y"] + 1.62), "JOINT PLAN (NTS)", size=DS - 0.6,
+                     font=FONT_B)
+    Paper(sh.c).mtext((c["x"] + c["w"] - 2.25, c["y"] + 0.98),
+                      ["TOOLED CONTRACTION JOINT 1/4 DEPTH @ 5'-0\" O.C.",
+                       "1/2\" EXP. JOINT @ 50' MAX. & AT STRUCTURES"], size=DS - 1.0)
+    _dt(sh, c, 1, "PCC SIDEWALK", '3/4" = 1\'-0"')
+
+
+def det_curb(sh, c):
+    v = _cv(sh, c, 1.5, (-1.9, -1.15, 2.2, 1.85), dx=0.1, dy=0.2)
+    # inches -> feet; x = 0 at back of curb, gutter lip at x = 1.5
+    I = IN_
+    pts = [(0, -5 * I), (0, 13 * I), (5.5 * I, 13 * I), (6 * I, 12.5 * I), (7 * I, 7 * I),
+           (18 * I, 8 * I), (18 * I, 0), (6 * I, 0), (6 * I, -5 * I)]
+    _earth(v, [(-1.2, -1.0), (2.6, -1.0), (2.6, -4 * I - 0.0), (-1.2, -4 * I)])
+    _gravel(v, [(-0.5, -9 * I), (2.6, -9 * I), (2.6, -0.0), (18 * I, 0), (6 * I, 0), (6 * I, -5 * I),
+                (0, -5 * I), (-0.5, -5 * I)])
+    _concrete(v, pts)
+    # HMA pavement beyond lip
+    v.polygon([(18 * I, 8 * I), (2.6, 8.3 * I), (2.6, 0), (18 * I, 0)], lw="thin", fill="g20")
+    v.line((18 * I, 6 * I), (2.6, 6.2 * I), lw="fine")
+    # parkway soil behind the curb
+    v.polygon([(-1.2, 13 * I - 0.02), (0, 13 * I), (0, -5 * I), (-1.2, -5 * I)], lw=None,
+              hatch="earth", hatch_kw=dict(scale=0.9, w="hair"))
+    _grass(v, -1.2, 0.0, 13 * I - 0.01)
+    break_line(v, (2.6, -0.85), (2.6, 0.75))
+    v.dim((0, 13 * I), (6 * I, 13 * I), 0.35, text="6\"")
+    v.dim((6 * I, 13 * I), (18 * I, 13 * I), 0.35, text="1'-0\"")
+    v.dim((0, 13 * I), (18 * I, 13 * I), 0.62, text="1'-6\"")
+    v.dim((18 * I, 0), (18 * I, 8 * I), -0.25, text="8\"")
+    v.dim((0, -5 * I), (0, 13 * I), 0.55, text="1'-6\"")
+    v.dim((7 * I, 7 * I), (7 * I, 13 * I), -0.0, text="")
+    dl(v, (6.6 * I, 10 * I), (-1.85, 1.35), ["6\" CURB FACE, 1\" BATTER"], "r")
+    dl(v, (12 * I, 4 * I), (-1.85, -0.3), ["PCC CURB & GUTTER,", "4,000 PSI, AIR-ENTR."], "r")
+    dl(v, (1.8, -7 * I), (0.9, -1.15), ["4\" CA-6 AGG. BASE (MIN. 6\"", "BEYOND BACK OF CURB)"], "r")
+    dl(v, (2.3, 7.1 * I), (1.6, 1.55), ["MATCH EX. HMA", "PAVEMENT"], "r")
+    dl(v, (-0.6, 13 * I), (-1.85, 0.85), ["TOPSOIL & SOD"], "r")
+    Paper(sh.c).mtext((c["x"] + 0.25, c["y"] + 1.25),
+                      ["CONTRACTION JOINTS @ 15' O.C. MAX.; 1\" EXPANSION JOINTS AT RADIUS",
+                       "POINTS, STRUCTURES AND 100' MAX. MATCH EXISTING CURB AND",
+                       "GUTTER LINE & GRADE. PER IDOT HIGHWAY STANDARD 606001."], size=DS - 0.6)
+    _dt(sh, c, 2, "COMBINATION CONC. CURB & GUTTER B-6.12", '1 1/2" = 1\'-0"')
+
+
+def det_patch(sh, c):
+    v = _cv(sh, c, 0.5, (-5.6, -5.2, 5.6, 2.0), dy=0.25)
+    s1, b1, t = 2 / 12, 3 / 12, 10 / 12
+    T = s1 + b1 + t
+    hw = 1.5
+    sc_ = hw + 1.0
+    # existing pavement both sides
+    for sg in (-1, 1):
+        x0, x1 = sg * sc_, sg * 4.5
+        a, b = min(x0, x1), max(x0, x1)
+        v.polygon([(a, 0), (b, 0), (b, -s1 - b1), (a, -s1 - b1)], lw="thin", fill="g40")
+        v.polygon([(a, -s1 - b1), (b, -s1 - b1), (b, -T - 0.2), (a, -T - 0.2)], lw="thin",
+                  fill="white", hatch="gravel", hatch_kw=dict(scale=0.7))
+        _earth(v, [(a, -T - 0.2), (b, -T - 0.2), (b, -5.0), (a, -5.0)])
+    # patch
+    v.polygon([(-sc_, 0), (sc_, 0), (sc_, -s1), (-sc_, -s1)], lw="thin", fill="g40")
+    v.polygon([(-sc_, -s1), (sc_, -s1), (sc_, -s1 - b1), (-sc_, -s1 - b1)], lw="thin", fill="g20")
+    _concrete(v, [(-sc_, -s1 - b1), (sc_, -s1 - b1), (sc_, -T), (-sc_, -T)], lw="thin")
+    # trench backfill
+    v.polygon([(-hw, -T), (hw, -T), (hw, -5.0), (-hw, -5.0)], lw="thin", fill="white",
+              hatch="gravel", hatch_kw=dict(scale=0.7))
+    v.polygon([(-sc_, -T), (-hw, -T), (-hw, -T - 0.2), (-sc_, -T - 0.2)], lw=None, fill="white",
+              hatch="gravel", hatch_kw=dict(scale=0.7))
+    v.polygon([(hw, -T), (sc_, -T), (sc_, -T - 0.2), (hw, -T - 0.2)], lw=None, fill="white",
+              hatch="gravel", hatch_kw=dict(scale=0.7))
+    for x in (-sc_, sc_):
+        v.line((x, 0.25), (x, -T), lw="med")
+    break_line(v, (-4.5, -5.0), (4.5, -5.0))
+    v.dim((-sc_, 0), (-hw, 0), 0.9, text="1'-0\"")
+    v.dim((-hw, 0), (hw, 0), 0.9, text="TRENCH WIDTH")
+    v.dim((hw, 0), (sc_, 0), 0.9, text="1'-0\"")
+    dl(v, (-1.0, -s1 / 2), (-5.5, 1.55), ["2\" HMA SURFACE COURSE, MIX \"D\" N50"], "r")
+    dl(v, (-0.4, -s1 - b1 / 2), (-5.5, -0.8), ["3\" HMA BINDER COURSE IL-19.0 N50"], "r")
+    dl(v, (0.6, -s1 - b1 - t / 2), (-5.5, -1.5), ["10\" PCC BASE COURSE (HIGH EARLY)"], "r")
+    dl(v, (0.5, -3.2), (-5.5, -3.6), ["CA-6 TRENCH BACKFILL, 8\" LIFTS,", "95% STD. PROCTOR"], "r")
+    dl(v, (sc_, 0.15), (3.0, 1.6), ["SAWCUT FULL DEPTH;", "TACK COAT & SEAL EDGES"], "r")
+    dl(v, (3.6, -0.2), (3.3, -2.4), ["EXISTING", "PAVEMENT"], "r")
+    _dt(sh, c, 3, "HMA PAVEMENT PATCH (STREET)", '1/2" = 1\'-0"')
+
+
+def det_stoop(sh, c):
+    v = _cv(sh, c, 0.75, (-2.6, -4.0, 6.6, 2.6), dy=0.2)
+    I = IN_
+    L = 5.0
+    top_w = -0.5 * I                 # top of stoop at the wall (relative to FFE = 0)
+    top_e = top_w - 0.01 * L
+    t = 6 * I
+    # foundation wall + slab-on-grade inside (x < 0)
+    v.polygon([(-1.0, -4.0), (0.0, -4.0), (0.0, -8 * I), (-0.33, -8 * I), (-0.33, 0.0),
+               (-1.0, 0.0)], lw="med", fill="white", hatch="concrete", hatch_kw=dict(scale=0.9))
+    v.polygon([(-2.5, 0.0), (-1.0, 0.0), (-1.0, -5 * I), (-2.5, -5 * I)], lw="thin", fill="white",
+              hatch="concrete", hatch_kw=dict(scale=0.9))
+    v.polygon([(-0.33, 0.0), (0.0, 0.0), (0.0, 1.9), (-0.33, 1.9)], lw="thin", fill="g20")
+    v.line((-1.0, 0.0), (-1.0, 1.9), lw="thin")
+    v.rect(-0.95, 0.0, 0.62, 0.06, lw="thin", fill="g40")
+    _earth(v, [(0.0, -4.0), (6.4, -4.0), (6.4, top_e - 2.0), (0.0, top_e - 2.0)])
+    _gravel(v, [(0.0, top_w - t - 0.5), (L - 1.0, top_e - t - 0.5), (L - 1.0, top_e - t),
+                (0.0, top_w - t)])
+    slab = [(0.04, top_w), (L, top_e), (L, top_e - 1.0), (L - 1.0, top_e - 1.0), (L - 1.0, top_e - t),
+            (0.04, top_w - t)]
+    _concrete(v, slab)
+    v.line((0.02, top_w + 0.02), (0.02, top_w - t), lw="thin")
+    for k in range(5):
+        x = 0.4 + k * 1.0
+        if x < L - 0.2:
+            v.circle((x, top_w - t / 2 - 0.01 * x), 0.04, lw=None, fill="black")
+    v.line((-0.6, top_w - t / 2 + 0.03), (1.6, top_w - t / 2 - 0.0), lw="thin")
+    _grass(v, L, 6.4, top_e - 0.63)
+    v.polygon([(L, top_e - 0.63), (6.4, top_e - 0.7), (6.4, top_e - 2.0), (L, top_e - 2.0)],
+              lw=None, hatch="earth", hatch_kw=dict(scale=0.9, w="hair"))
+    break_line(v, (-2.5, -4.0), (6.4, -4.0))
+    v.dim((0.0, top_w), (L, top_e), 1.2, text="5'-0\" (STOOP DEPTH)")
+    v.dim((L, top_e), (L, top_e - 1.0), -0.6, text="1'-0\"")
+    v.dim((L - 1.0, top_e - 1.0), (L, top_e - 1.0), -0.35, text="1'-0\"")
+    dl(v, (2.5, top_w - 0.12), (1.2, 2.3), ["6\" PCC STOOP, #4 @ 12\" E.W. CENTERED;", "TOP 1/2\" BELOW FFE (712.46),",
+                                           "1% SLOPE AWAY FROM DOOR"], "r")
+    dl(v, (0.6, top_w - t / 2 + 0.02), (-2.5, -1.3), ["#4 x 24\" DOWELS @ 12\" O.C.,", "EPOXY 6\" INTO FDN. WALL"], "r")
+    dl(v, (0.02, top_w - 0.25), (-2.5, -0.55), ["1/2\" ISOLATION JT. & SEALANT"], "r")
+    dl(v, (2.0, top_w - t - 0.3), (2.2, -2.7), ["6\" CA-6 BASE, 95% COMPACTION"], "r")
+    dl(v, (4.6, top_e - 0.8), (5.0, -3.4), ["THICKENED EDGE", "(2) #4 CONT."], "r")
+    dl(v, (-0.6, -2.5), (-2.5, -3.5), ["FOUNDATION WALL (S-301)"], "r")
+    dl(v, (-0.6, 0.03), (-2.5, 1.4), ["THRESHOLD / FFE 712.50", "(SEE A-501, A-701)"], "r")
+    _dt(sh, c, 4, "CONCRETE STOOP WITH THICKENED EDGE", '3/4" = 1\'-0"')
+
+
+def det_ramp(sh, c):
+    v = _cv(sh, c, 0.25, (-8.5, -4.5, 14.5, 15.0), dy=0.9)
+    # curb & gutter along y = 0 (gutter y -1.5..0); ramp x 0..6, run y 0..6; landing y 6..10
+    v.rect(-8.0, -2.0, 22.0, 0.5, lw="thin")
+    v.line((-8.0, -1.5), (14.0, -1.5), lw="thin")
+    v.line((-8.0, 0.0), (-5.0, 0.0), lw="thin")
+    v.line((11.0, 0.0), (14.0, 0.0), lw="thin")
+    v.line((-8.0, 0.5), (-5.0, 0.5), lw="thin")
+    v.line((11.0, 0.5), (14.0, 0.5), lw="thin")
+    v.polygon([(-5.0, 0.5), (0.0, 0.0), (0.0, 6.0)], lw="thin")
+    v.polygon([(6.0, 0.0), (11.0, 0.5), (6.0, 6.0)], lw="thin")
+    v.polygon([(0, 0), (6, 0), (6, 6), (0, 6)], lw="med")
+    v.polygon([(0.0, 0.0), (6.0, 0.0), (6.0, 2.0), (0.0, 2.0)], lw="thin", hatch="dots",
+              hatch_kw=dict(scale=0.45))
+    v.rect(-8.0, 6.0, 22.0, 5.0, lw="thin")
+    v.line((-3.5, 6.0), (-3.5, 11.0), lw="fine", dash="dashed")
+    v.line((9.5, 6.0), (9.5, 11.0), lw="fine", dash="dashed")
+    v.dim((0, 6.0), (6, 6.0), 6.2, text="6'-0\" (MATCH WALK, 4' MIN.)")
+    v.dim((6.0, 0.0), (6.0, 2.0), -1.0, text="2'-0\"")
+    v.dim((6.0, 2.0), (6.0, 6.0), -1.0, text="")
+    slope_arrow(v, (3.0, 5.6), (3.0, 2.4), "8.33% MAX.", size=DS - 0.6)
+    p = Paper(sh.c)
+    dl(v, (1.0, 1.0), (-8.0, -4.0), ["DETECTABLE WARNING: CAST-IN-PLACE TRUNCATED", "DOMES, FULL WIDTH x 2'-0\", CONTRASTING COLOR"], "r")
+    dl(v, (-2.0, 0.6), (-8.0, 3.5), ["FLARE 10% MAX."], "r")
+    dl(v, (3.0, 8.5), (-8.0, 13.6), ["LANDING 4'x4' MIN., 2% MAX. EACH WAY"], "r")
+    dl(v, (12.0, -0.75), (12.5, 3.0), ["CURB &", "GUTTER"], "r")
+    dl(v, (3.0, -0.1), (12.5, -3.6), ["0\" LIP AT RAMP;", "GUTTER COUNTER-", "SLOPE 5% MAX."], "r")
+    # schematic section A-A
+    sx, sy = c["x"] + 0.35, c["y"] + 0.95
+    q = Paper(sh.c)
+    q.text((sx, sy + 0.42), "SECTION THRU RAMP (NTS)", size=DS - 0.6, font=FONT_B)
+    q.polyline([(sx, sy), (sx + 0.6, sy + 0.04), (sx + 0.6, sy + 0.04), (sx + 1.6, sy + 0.24),
+                (sx + 2.6, sy + 0.26)], lw="med")
+    q.polyline([(sx, sy - 0.08), (sx + 2.6, sy - 0.08 + 0.18)], lw="fine", dash="dashed")
+    q.text((sx + 0.3, sy - 0.03), "GUTTER", size=DS - 1.2, anchor="c", valign="top")
+    q.text((sx + 1.1, sy + 0.22), "RAMP 8.33%", size=DS - 1.2, anchor="c", valign="bot")
+    q.text((sx + 2.1, sy + 0.31), "LANDING 2%", size=DS - 1.2, anchor="c", valign="bot")
+    _dt(sh, c, 5, "PERPENDICULAR CURB RAMP W/ DETECTABLE WARNING", '1/4" = 1\'-0"')
+
+
+def det_silt(sh, c):
+    v = _cv(sh, c, 1.0, (-2.7, -2.4, 3.2, 3.4), dy=0.15)
+    # ground y = 0 sloping slightly; fabric at x = 0; trench x -0.5..0 depth 0.5
+    _earth(v, [(-2.5, 0.0), (-0.5, 0.0), (-0.5, -0.5), (0.0, -0.5), (0.0, 0.0), (3.0, -0.15),
+               (3.0, -2.2), (-2.5, -2.2)])
+    _grass(v, -2.5, -0.5, 0.0)
+    v.line((0.0, 0.0), (3.0, -0.15), lw="thin")
+    v.polygon([(-0.5, 0.0), (0.0, 0.0), (0.0, -0.5), (-0.5, -0.5)], lw="thin", fill="white",
+              hatch="sand", hatch_kw=dict(scale=0.8))
+    v.rect(0.04, -2.0, 1.5 / 12, 4.5, lw="thin", fill="g20")           # stake
+    v.polyline([(-0.48, -0.48), (-0.02, -0.48), (-0.02, 2.5)], lw="heavy")  # fabric
+    for yy in (0.6, 1.4, 2.2):
+        v.line((-0.12, yy), (0.04, yy), lw="thin")
+    break_line(v, (-2.5, -2.2), (3.0, -2.2))
+    v.dim((-0.02, 0.0), (-0.02, 2.5), 0.9, text="24\"-30\"")
+    v.dim((0.06, -2.0), (0.06, 0.0), -0.75, text="18\" MIN.")
+    v.dim((-0.5, -0.5), (0.0, -0.5), -0.35, text="6\"")
+    v.dim((-0.5, -0.5), (-0.5, 0.0), -0.35, text="6\"")
+    flow_arrow(v, (-2.4, 0.5), (-1.2, 0.5))
+    Paper(sh.c).text(v.to_paper((-1.8, 0.75)), "FLOW", size=DS - 0.6, anchor="c", font=FONT_B)
+    dl(v, (-0.02, 1.9), (-2.6, 2.9), ["WOVEN GEOTEXTILE SILT FENCE", "FABRIC (IDOT ART. 1080.02)"], "r")
+    dl(v, (0.1, 1.0), (0.9, 2.6), ["1 1/8\" SQ. HARDWOOD STAKE,", "4'-0\" LONG, 8'-0\" O.C. MAX.,",
+                                  "ON DOWNSTREAM SIDE"], "r")
+    dl(v, (-0.25, -0.3), (-2.6, -1.0), ["TRENCH 6\"x6\"; FABRIC TOE", "LAID IN TRENCH, BACKFILLED", "& COMPACTED"], "r")
+    dl(v, (0.08, 2.15), (0.9, 1.25), ["FASTEN FABRIC TO STAKE", "W/ (3) STAPLES OR TIES"], "r")
+    Paper(sh.c).mtext((c["x"] + 0.25, c["y"] + 1.25),
+                      ["INSTALL ON CONTOUR; TURN ENDS UPSLOPE (J-HOOK). OVERLAP JOINTS",
+                       "AT A STAKE (WRAP 2 STAKES). REMOVE SEDIMENT AT 1/3 HEIGHT.",
+                       "PER ILLINOIS URBAN MANUAL, CODE 920."], size=DS - 0.6)
+    _dt(sh, c, 6, "SILT FENCE", '1" = 1\'-0"')
+
+
+def det_inlet(sh, c):
+    v = _cv(sh, c, 0.6, (-4.2, -4.0, 5.6, 2.6), dy=0.2)
+    R = 2.0
+    wt = 5 / 12.0
+    # structure walls
+    for sg in (-1, 1):
+        x0 = sg * R
+        x1 = sg * (R + wt)
+        a, b = min(x0, x1), max(x0, x1)
+        _concrete(v, [(a, -3.6), (b, -3.6), (b, -0.6), (a, -0.6)], lw="thin")
+    # top slab, rings, frame & grate
+    _concrete(v, [(-R - wt, -0.6), (-1.2, -0.6), (-1.2, -0.0), (-R - wt, -0.0)], lw="thin")
+    _concrete(v, [(1.2, -0.6), (R + wt, -0.6), (R + wt, 0.0), (1.2, 0.0)], lw="thin")
+    v.polygon([(-1.35, 0.0), (1.35, 0.0), (1.35, 0.35), (-1.35, 0.35)], lw="thin", fill="g40")
+    v.polygon([(-1.15, 0.35), (1.15, 0.35), (1.15, 0.45), (-1.15, 0.45)], lw="thin", fill="g80")
+    for k in range(9):
+        x = -1.0 + k * 0.25
+        v.line((x, 0.35), (x, 0.45), lw="fine", color="white")
+    _earth(v, [(-4.0, -3.6), (-R - wt, -3.6), (-R - wt, 0.45), (-4.0, 0.45)])
+    _earth(v, [(R + wt, -3.6), (4.0, -3.6), (4.0, 0.45), (R + wt, 0.45)])
+    _grass(v, -4.0, -1.35, 0.45)
+    _grass(v, 1.35, 4.0, 0.45)
+    # filter bag
+    bag = [(-1.1, 0.35), (-1.0, -0.2), (-0.95, -1.9), (-0.6, -2.3), (0.6, -2.3), (0.95, -1.9),
+           (1.0, -0.2), (1.1, 0.35)]
+    v.polyline(bag, lw="med", dash=[3, 1.5])
+    v.polygon([(-0.95, -1.9), (-0.6, -2.3), (0.6, -2.3), (0.95, -1.9), (0.9, -1.5), (-0.9, -1.5)],
+              lw=None, hatch="sand", hatch_kw=dict(scale=0.7))
+    for x in (-0.95, 0.95):
+        v.circle((x, -0.35), 0.1, lw="fine", fill="white")
+    break_line(v, (-4.0, -3.6), (4.0, -3.6))
+    dl(v, (0.0, 0.42), (-4.1, 2.2), ["EXISTING / PROPOSED FRAME & GRATE"], "r")
+    dl(v, (-1.0, -1.0), (-4.1, -1.2), ["GEOTEXTILE FILTER BAG INSERT", "(DANDY BAG OR EQUAL) SIZED", "TO STRUCTURE"], "r")
+    dl(v, (0.95, -0.35), (2.7, 1.6), ["OVERFLOW OPENINGS", "& LIFTING STRAPS"], "r")
+    dl(v, (0.3, -2.0), (2.7, -2.2), ["SEDIMENT - EMPTY", "AT 1/2 FULL"], "r")
+    dl(v, (R + 0.2, -3.0), (2.7, -3.3), ["CB / INLET STRUCTURE"], "r")
+    Paper(sh.c).mtext((c["x"] + 0.25, c["y"] + 1.25),
+                      ["CURB INLETS IN MAPLE ST. / PRAIRIE AVE.: CURB INLET FILTER WITH",
+                       "OVERFLOW (DANDY CURB SACK OR EQUAL) - DO NOT BLOCK THE CURB OPENING.",
+                       "INSTALL ON NEW STRUCTURES IMMEDIATELY AFTER SETTING THE GRATE."], size=DS - 0.6)
+    _dt(sh, c, 7, "INLET PROTECTION", "NTS")
+
+
+def det_entrance(sh, c):
+    # plan at 1" = 20'
+    v = sh.view(c["x"] + 0.75, c["y"] + c["h"] - 2.45, 1 / 20.0)
+    v.rect(0, 0, 70, 24, lw="thin", fill="white", hatch="gravel", hatch_kw=dict(scale=0.9))
+    v.rect(70, -6, 10, 36, lw="thin")
+    v.line((76, -6), (76, 30), lw="fine")
+    v.line((80, -6), (80, 30), lw="fine", dash="center")
+    for sg in (-1, 1):
+        y0 = 0 if sg < 0 else 24
+        v.polyline([(70, y0), (66, y0 + sg * 4)], lw="thin")
+    v.dim((0, 24), (70, 24), 3.0, text="70'-0\" (50' MIN.)")
+    v.dim((0, 0), (0, 24), 3.0, text="24'-0\"")
+    p = Paper(sh.c)
+    p.text(v.to_paper((35, 12)), "CA-1 STONE", size=DS, font=FONT_B, anchor="c", valign="mid")
+    p.mtext(v.to_paper((75, 34)), ["MAPLE ST.", "(EX. PAVEMENT)"], size=DS - 0.8, anchor="c", valign="bot")
+    flow_arrow(v, (55, -4), (75, -4))
+    p.text(v.to_paper((40, -6)), "EXIT TO MAPLE ST.", size=DS - 0.8, anchor="c", valign="top")
+    p.text(v.to_paper((0, -14)), "PLAN", size=DS, font=FONT_B, valign="top")
+    # section (NTS)
+    sx, sy = c["x"] + 0.5, c["y"] + 1.85
+    q = Paper(sh.c)
+    q.text((sx, sy + 0.95), "SECTION (NTS)", size=DS, font=FONT_B)
+    q.polygon([(sx, sy), (sx + 4.8, sy), (sx + 4.8, sy + 0.45), (sx, sy + 0.45)], lw="thin",
+              fill="white", hatch="gravel", hatch_kw=dict(scale=0.9))
+    q.line((sx, sy - 0.02), (sx + 4.8, sy - 0.02), lw="heavy", dash=[3, 1.5])
+    q.polygon([(sx - 0.2, sy - 0.02), (sx + 5.0, sy - 0.02), (sx + 5.0, sy - 0.5), (sx - 0.2, sy - 0.5)],
+              lw=None, hatch="earth", hatch_kw=dict(scale=0.9, w="hair"))
+    q.line((sx + 4.8, sy + 0.45), (sx + 5.2, sy + 0.3), lw="thin")
+    q.text((sx + 5.1, sy + 0.08), "8\"", size=DS, anchor="c")
+    q.line((sx + 4.95, sy), (sx + 4.95, sy + 0.45), lw="fine")
+    callout(sh.view(0, 0, 1), (sx + 1.0, sy + 0.3), (sx + 1.6, sy + 0.78),
+            ["8\" CA-1 (2\"-3\") CRUSHED STONE"], DS, side="r")
+    callout(sh.view(0, 0, 1), (sx + 2.6, sy - 0.02), (sx + 3.0, sy - 0.75),
+            ["NON-WOVEN GEOTEXTILE (IDOT 1080.02) ON", "COMPACTED SUBGRADE"], DS, side="r")
+    Paper(sh.c).mtext((c["x"] + 0.25, c["y"] + 0.92 + 0.0),
+                      ["TOP-DRESS WITH STONE AS NEEDED; SWEEP MAPLE ST. DAILY. REMOVE AT",
+                       "COMPLETION; RESTORE CURB, WALK & PARKWAY (C-200). IUM CODE 930."],
+                      size=DS - 0.6)
+    _dt(sh, c, 8, "STABILIZED CONSTRUCTION ENTRANCE", "AS NOTED")
+
+
+def det_trench(sh, c):
+    v = _cv(sh, c, 0.5, (-6.4, -8.2, 5.4, 1.4), dy=0.3)
+    D = 1.0
+    hw = 1.5
+    inv = -6.5
+    crown = inv + D
+    _earth(v, [(-4.5, inv - 0.8), (-hw, inv - 0.8), (-hw, 0.0), (-4.5, 0.0)])
+    _earth(v, [(hw, inv - 0.8), (4.5, inv - 0.8), (4.5, 0.0), (hw, 0.0)])
+    _earth(v, [(-4.5, inv - 1.5), (4.5, inv - 1.5), (4.5, inv - 0.5), (-4.5, inv - 0.5)])
+    _gravel(v, [(-hw, inv - 0.5), (hw, inv - 0.5), (hw, crown + 1.0), (-hw, crown + 1.0)])
+    v.polygon([(-hw, crown + 1.0), (hw, crown + 1.0), (hw, -0.5), (-hw, -0.5)], lw="thin",
+              fill="white", hatch="earth", hatch_kw=dict(scale=1.3, w="hair"))
+    v.polygon([(-hw, -0.5), (hw, -0.5), (hw, 0.0), (-hw, 0.0)], lw="thin", fill="g10")
+    _grass(v, -4.5, 4.5, 0.0)
+    v.circle((0, inv + D / 2), D / 2, lw="med", fill="white")
+    v.circle((0, inv + D / 2), D / 2 - 0.08, lw="fine")
+    v.line((-hw, inv + D / 2), (hw, inv + D / 2), lw="fine", dash="center")
+    v.line((-1.0, -1.5), (1.0, -1.5), lw="thin", dash=[2, 1])
+    break_line(v, (-4.5, inv - 1.5), (4.5, inv - 1.5))
+    v.dim((-hw, inv - 0.5), (hw, inv - 0.5), -0.9, text="O.D. + 24\" MAX.")
+    v.dim((hw, inv - 0.5), (hw, inv), -0.6, text="6\"")
+    v.dim((hw, crown), (hw, crown + 1.0), -0.6, text="12\"")
+    v.dim((hw, inv + D / 2), (hw, crown), -0.6, text="")
+    dl(v, (-0.6, -0.25), (-6.3, 0.9), ["6\" TOPSOIL & SOD / SEED (OR PAVEMENT", "PER 1/C-500, 3/C-500)"], "r")
+    dl(v, (-0.6, -2.5), (-6.3, -2.2), ["FINAL BACKFILL: CA-6 @ 95% UNDER /", "WITHIN 2' OF PAVEMENT; SUITABLE",
+                                      "EXCAV. MATL. @ 90% IN LAWNS"], "r")
+    dl(v, (0.8, -1.5), (1.9, -0.9), ["DETECTABLE WARNING", "TAPE 18\" BELOW GRADE"], "r")
+    dl(v, (-1.2, crown + 0.6), (-6.3, -4.6), ["INITIAL BACKFILL CA-7,", "12\" ABOVE PIPE"], "r")
+    dl(v, (-1.1, inv + 0.3), (-6.3, -6.2), ["HAUNCHING CA-7 TO SPRINGLINE,", "SHOVEL-SLICED"], "r")
+    dl(v, (-0.9, inv - 0.25), (-6.3, -7.5), ["BEDDING CA-7, 6\" MIN."], "r")
+    dl(v, (0.35, inv + 0.85), (2.3, -4.2), ["PIPE (SEE C-400)"], "r")
+    Paper(sh.c).mtext((c["x"] + 0.25, c["y"] + 1.15),
+                      ["EXCAVATION PER OSHA 29 CFR 1926 SUBPART P (SLOPE, BENCH OR SHORE).",
+                       "COPPER & DIP WATER: SAND BEDDING ACCEPTABLE. COMPACT IN 8\" LIFTS."],
+                      size=DS - 0.6)
+    _dt(sh, c, 9, "UTILITY TRENCH & BEDDING", '1/2" = 1\'-0"')
+
+
+def det_cleanout(sh, c):
+    v = _cv(sh, c, 0.75, (-3.6, -4.2, 4.2, 1.6), dy=0.25)
+    r = 3.25 / 12
+    _earth(v, [(-3.0, -4.0), (3.5, -4.0), (3.5, -0.5), (-3.0, -0.5)])
+    v.polygon([(-0.75, 0.0), (0.75, 0.0), (0.75, -0.5), (-0.75, -0.5)], lw="med", fill="white",
+              hatch="concrete", hatch_kw=dict(scale=0.9))
+    v.polygon([(-3.0, 0.0), (-0.75, 0.0), (-0.75, -0.5), (-3.0, -0.5)], lw=None, hatch="earth",
+              hatch_kw=dict(scale=0.9, w="hair"))
+    v.polygon([(0.75, 0.0), (3.5, 0.0), (3.5, -0.5), (0.75, -0.5)], lw=None, hatch="earth",
+              hatch_kw=dict(scale=0.9, w="hair"))
+    _grass(v, -3.0, -0.75, 0.0)
+    _grass(v, 0.75, 3.5, 0.0)
+    v.polygon([(-0.4, 0.0), (0.4, 0.0), (0.4, -0.35), (-0.4, -0.35)], lw="thin", fill="g40")
+    # riser + sweep to the main
+    v.polygon([(-r, -0.35), (r, -0.35), (r, -2.6), (-r, -2.6)], lw="thin", fill="white")
+    v.polygon([(-3.0, -3.2), (3.5, -3.2), (3.5, -3.2 + 2 * r), (-3.0, -3.2 + 2 * r)], lw="thin",
+              fill="white")
+    v.polyline([(-r, -2.6), (-r - 0.25, -2.9), (-r - 0.45, -3.2 + 2 * r)], lw="thin")
+    v.polyline([(r, -2.6), (r + 0.25, -2.9), (r + 0.45, -3.2 + 2 * r)], lw="thin")
+    v.polygon([(-r - 0.6, -3.2 - 0.33), (3.5, -3.2 - 0.33), (3.5, -3.2), (-r - 0.6, -3.2)], lw=None,
+              hatch="gravel", hatch_kw=dict(scale=0.6))
+    v.rect(-0.18, -0.35, 0.36, 0.08, lw="fine", fill="g80")
+    flow_arrow(v, (1.5, -3.2 + r), (3.0, -3.2 + r))
+    break_line(v, (-3.0, -4.0), (3.5, -4.0))
+    v.dim((-0.75, 0.0), (0.75, 0.0), 0.8, text="18\" SQ.")
+    v.dim((0.75, 0.0), (0.75, -0.5), -0.55, text="6\"")
+    dl(v, (0.0, -0.05), (-3.5, 1.3), ["C.I. CLEANOUT FRAME & SCREW COVER", "(NEENAH R-1976 OR EQUAL), FLUSH W/ GRADE"], "r")
+    dl(v, (0.6, -0.3), (1.3, 0.85), ["6\" CONC. COLLAR,", "18\"x18\""], "r")
+    dl(v, (-0.1, -0.33), (-3.5, -1.0), ["THREADED PVC PLUG"], "r")
+    dl(v, (-r, -1.8), (-3.5, -1.8), ["6\" PVC RISER (SDR-26)"], "r")
+    dl(v, (-r - 0.3, -2.95), (-3.5, -2.55), ["COMBINATION WYE & 1/8 BEND", "(2-WAY: TWO WYES BACK TO BACK)"], "r")
+    dl(v, (2.3, -3.2 + 2 * r), (1.6, -2.1), ["6\" PVC SANITARY"], "r")
+    _dt(sh, c, 10, "SANITARY CLEANOUT", '3/4" = 1\'-0"')
+
+
+def det_manhole(sh, c):
+    v = _cv(sh, c, 0.4, (-8.6, -9.4, 6.6, 1.6), dy=0.2)
+    R, wt = 2.0, 5 / 12
+    base_t = 8 / 12
+    inv = -5.0
+    bot = inv - 2.0
+    # walls
+    for sg in (-1, 1):
+        a, b = sorted((sg * R, sg * (R + wt)))
+        _concrete(v, [(a, bot), (b, bot), (b, -1.0), (a, -1.0)], lw="thin")
+    _concrete(v, [(-R - wt - 0.5, bot - base_t), (R + wt + 0.5, bot - base_t), (R + wt + 0.5, bot),
+                  (-R - wt - 0.5, bot)], lw="thin")
+    _concrete(v, [(-R - wt, -1.0), (-1.2, -1.0), (-1.2, -0.5), (-R - wt, -0.5)], lw="thin")
+    _concrete(v, [(1.2, -1.0), (R + wt, -1.0), (R + wt, -0.5), (1.2, -0.5)], lw="thin")
+    for k, y in enumerate((-0.5, -0.33)):
+        v.polygon([(-1.6, y), (-1.2, y), (-1.2, y + 0.17), (-1.6, y + 0.17)], lw="fine", fill="g40")
+        v.polygon([(1.2, y), (1.6, y), (1.6, y + 0.17), (1.2, y + 0.17)], lw="fine", fill="g40")
+    v.polygon([(-1.6, -0.16), (1.6, -0.16), (1.6, 0.0), (-1.6, 0.0)], lw="thin", fill="g80")
+    _earth(v, [(-8.0, bot - base_t - 0.6), (-R - wt, bot - base_t - 0.6), (-R - wt, 0.0), (-8.0, 0.0)])
+    _earth(v, [(R + wt, bot - base_t - 0.6), (6.0, bot - base_t - 0.6), (6.0, 0.0), (R + wt, 0.0)])
+    _gravel(v, [(-R - wt - 0.5, bot - base_t - 0.5), (R + wt + 0.5, bot - base_t - 0.5),
+                (R + wt + 0.5, bot - base_t), (-R - wt - 0.5, bot - base_t)])
+    _grass(v, -8.0, -1.6, 0.0)
+    _grass(v, 1.6, 6.0, 0.0)
+    # pipes
+    v.polygon([(-8.0, inv), (-R - wt, inv), (-R - wt, inv + 1.0), (-8.0, inv + 1.0)], lw="thin",
+              fill="white")
+    v.polygon([(R + wt, inv - 0.1), (6.0, inv - 0.12), (6.0, inv + 0.9), (R + wt, inv + 0.9)],
+              lw="thin", fill="white")
+    # steps
+    for k in range(int((-1.2 - inv) / 1.333)):
+        y = -1.4 - k * 1.333
+        v.line((R - 0.05, y), (R - 0.45, y), lw="med")
+    v.line((-R, bot + 0.0), (R, bot), lw="fine")
+    v.text((0, bot + 0.9), "2'-0\" SUMP (CB)", size=DS - 0.6, anchor="c", valign="mid")
+    v.line((-R, inv), (R, inv), lw="fine", dash="dashed")
+    break_line(v, (-8.0, bot - base_t - 0.6), (6.0, bot - base_t - 0.6))
+    v.dim((-R, bot - 1.5), (R, bot - 1.5), 0, text="4'-0\" I.D.")
+    v.dim((R + wt, inv), (R + wt, bot), -2.2, text="2'-0\"")
+    dl(v, (0.0, -0.05), (-8.5, 1.4), ["FRAME & GRATE (CB): NEENAH R-4342; LID (MH):", "R-1712 \"STORM\" / \"SANITARY\""], "r")
+    dl(v, (-1.4, -0.33), (-8.5, -1.1), ["ADJ. RINGS 8\" MAX., MORTARED;", "CHIMNEY SEAL ON SANITARY"], "r")
+    dl(v, (-R - 0.2, -2.5), (-8.5, -2.6), ["48\" PRECAST REINF. CONC.", "ASTM C478, 5\" WALL"], "r")
+    dl(v, (-R - wt - 0.1, inv + 0.5), (-8.5, -4.0), ["FLEXIBLE BOOT", "ASTM C923 (TYP.)"], "r")
+    dl(v, (R - 0.3, -2.733), (3.2, -2.0), ["STEPS @ 16\" O.C.", "(M.A. INDUSTRIES", "PS2-PF OR EQUAL)"], "r")
+    dl(v, (0.0, bot - base_t / 2), (-8.5, -8.4), ["8\" PRECAST BASE; MH: CONC. BENCH", "& CHANNEL; CB: 2' SUMP"], "r")
+    dl(v, (2.5, bot - base_t - 0.3), (3.0, -8.8), ["6\" CA-7 BASE"], "r")
+    _dt(sh, c, 11, "STORM MANHOLE / CATCH BASIN (48\")", '3/8" = 1\'-0"')
+
+
+def det_thrust(sh, c):
+    v = _cv(sh, c, 0.6, (-3.6, -3.0, 5.6, 4.2), dy=1.1)
+    D = 0.6
+    # 90 deg bend: pipe from west along y=0 turning north at x=0
+    v.polygon([(-3.0, -D / 2), (0.0, -D / 2), (0.0, D / 2), (-3.0, D / 2)], lw="thin", fill="white")
+    v.polygon([(-D / 2, 0.0), (D / 2, 0.0), (D / 2, 3.0), (-D / 2, 3.0)], lw="thin", fill="white")
+    v.polygon([(-D / 2, D / 2), (0.0, D / 2), (D / 2, 0.0), (D / 2, -D / 2), (0.0, -D / 2)],
+              lw="thin", fill="white")
+    blk = [(D / 2, -D / 2), (D / 2 + 0.05, D / 2), (2.2, 1.6), (2.2, -2.2), (-1.6, -2.2),
+           (-D / 2, -D / 2 - 0.05)]
+    _concrete(v, [(0.0 + D / 2, -D / 2), (2.2, 1.0), (2.2, -2.2), (-1.0, -2.2), (0.0, -D / 2)],
+              lw="med")
+    _earth(v, [(2.2, 1.5), (3.0, 1.5), (3.0, -2.6), (-1.6, -2.6), (-1.6, -2.2), (2.2, -2.2)])
+    flow_arrow(v, (-0.5, -0.4), (1.2, -1.4))
+    dl(v, (1.4, -1.4), (2.8, 3.4), ["CONCRETE THRUST BLOCK, 3,000 PSI,", "POURED AGAINST UNDISTURBED SOIL"], "r")
+    dl(v, (0.15, 0.25), (-3.5, 2.6), ["MJ 90 DEG. BEND WITH", "RESTRAINED JOINTS"], "r")
+    dl(v, (0.0, -D / 2), (-3.5, -2.4), ["KEEP JOINTS & BOLTS", "CLEAR OF CONCRETE;", "POLY SHEET BETWEEN"], "r")
+    p = Paper(sh.c)
+    p.text(v.to_paper((-3.0, 3.6)), "PLAN - HORIZONTAL BEND", size=DS, font=FONT_B)
+    rows = [["90 DEG. BEND", "6.0"], ["45 DEG. BEND", "3.0"], ["22 1/2 DEG. BEND", "1.5"],
+            ["11 1/4 DEG. BEND", "1.0"], ["TEE / PLUG / DEAD END", "4.0"]]
+    table(sh, c["x"] + 0.6, c["y"] + 2.3, [("6\" FITTING", 2.0), ("MIN. BEARING AREA (SF)", 2.4)],
+          rows, row_h=0.16, size=DS - 0.4, align=["l", "c"])
+    sh.mtext((c["x"] + 0.6, c["y"] + 1.18), ["BASED ON 200 PSI TEST PRESSURE AND 2,000 PSF ALLOWABLE",
+                                             "SOIL BEARING. VERTICAL BEND AT BUILDING: RESTRAINED",
+                                             "JOINTS + 1 CY CONCRETE BLOCK UNDER BEND."], size=DS - 0.6)
+    _dt(sh, c, 12, "THRUST BLOCK (WATER SERVICE)", "NTS")
+
+
+def det_tpf(sh, c):
+    v = _cv(sh, c, 0.375, (-4.0, -2.8, 13.5, 6.2), dy=0.9)
+    _earth(v, [(-3.0, -2.5), (13.0, -2.5), (13.0, 0.0), (-3.0, 0.0)])
+    _grass(v, -3.0, 13.0, 0.0)
+    for x in (0.0, 6.0, 12.0):
+        v.rect(x - 0.06, -2.0, 0.12, 6.0, lw="thin", fill="g60")
+    v.polygon([(0.0, 0.2), (12.0, 0.2), (12.0, 4.0), (0.0, 4.0)], lw="thin", hatch="ansi37",
+              hatch_kw=dict(spacing=0.06, w="hair"))
+    v.rect(4.2, 2.2, 3.6, 1.2, lw="thin", fill="white")
+    Paper(sh.c).mtext(v.to_paper((6.0, 2.8)), ["TREE PROTECTION", "ZONE - KEEP OUT"], size=DS - 1.2,
+                      anchor="c", valign="mid", font=FONT_B)
+    break_line(v, (-3.0, -2.5), (13.0, -2.5))
+    v.dim((0.0, 4.0), (6.0, 4.0), 1.0, text="6'-0\" O.C. (8' MAX.)")
+    v.dim((12.0, 0.0), (12.0, 4.0), -1.0, text="4'-0\"")
+    v.dim((12.0, -2.0), (12.0, 0.0), -1.0, text="2'-0\"")
+    dl(v, (3.0, 3.6), (-3.8, 5.6), ["4' HIGH ORANGE HIGH-DENSITY POLYETHYLENE", "BARRIER FENCE, FASTENED W/ (3) TIES PER POST"], "r")
+    dl(v, (6.0, 1.0), (-3.8, -1.2), ["STEEL T-POST, 6' LONG,", "DRIVEN 2' MIN."], "r")
+    dl(v, (9.0, 2.0), (9.5, 5.4), ["SIGN EVERY 50'", "(BILINGUAL)"], "r")
+    sh.mtext((c["x"] + 0.3, c["y"] + 1.95), [
+        "LOCATE AT THE DRIP LINE OR 1'-0\" RADIUS PER INCH OF DBH, WHICHEVER IS",
+        "GREATER, AND AROUND THE PLAYGROUND (C-300). INSTALL BEFORE ANY WORK.",
+        "NO STORAGE, PARKING, STOCKPILING, WASHOUT, TRENCHING OR GRADE CHANGE",
+        "INSIDE THE FENCE. ROOTS > 1\" EXPOSED BY EXCAVATION: CLEAN-CUT WITH A",
+        "SAW, COVER WITHIN 24 HRS. REMOVE FENCE AFTER FINAL RESTORATION."], size=DS - 0.5)
+    _dt(sh, c, 13, "TREE PROTECTION FENCE", '3/8" = 1\'-0"')
+
+
+CIVIL_GENERAL_NOTES = [
+    "##GENERAL",
+    "WORK SHALL CONFORM TO THE IDOT STANDARD SPECIFICATIONS FOR ROAD AND BRIDGE CONSTRUCTION, THE "
+    "STANDARD SPECIFICATIONS FOR WATER AND SEWER MAIN CONSTRUCTION IN ILLINOIS (CURRENT EDITIONS), "
+    "THE ILLINOIS URBAN MANUAL, THE ILLINOIS PLUMBING CODE (FOR BUILDING SERVICES) AND CITY OF "
+    "CEDAR PRAIRIE STANDARDS. WHERE REQUIREMENTS CONFLICT, THE MORE STRINGENT GOVERNS.",
+    "CIVIL ELEVATIONS ARE NAVD88. ARCH. 100'-0\" = EL. 712.50 = FFE OF THE ADDITION AND THE "
+    "EXISTING SCHOOL. HORIZONTAL: LOCAL SITE GRID, GRID 1 / GRID D = N 10,000.00, E 10,000.00.",
+    "THE SCHOOL IS OCCUPIED DURING CONSTRUCTION. OWNER CONSTRAINTS (ACCESS FROM MAPLE ST. ONLY, "
+    "STAGING AREA, LIMIT OF WORK, NO DELIVERIES 7:30-8:15 AM AND 2:45-3:30 PM, SUMMER TIE-IN) ARE "
+    "SHOWN ON C-200 / C-300. THE CONTRACTOR PREPARES THE SITE LOGISTICS PLAN.",
+    "CALL JULIE (811) 48 HOURS BEFORE DIGGING. PRIVATE UTILITY LOCATES ON SCHOOL PROPERTY BY THE "
+    "CONTRACTOR. PROTECT ALL UTILITIES TO REMAIN.",
+    "##MATERIALS",
+    "PCC: 4,000 PSI AT 28 DAYS, AIR-ENTRAINED 6% +/-1.5%, MAX. SLUMP 4\", IDOT CLASS SI. CURING "
+    "COMPOUND IDOT TYPE I. REINFORCING ASTM A615 GRADE 60. NO CONCRETE ON FROZEN SUBGRADE.",
+    "AGGREGATE: CA-6 (BASE COURSE), CA-7 (BEDDING / INITIAL BACKFILL), CA-1 (CONSTRUCTION "
+    "ENTRANCE) PER IDOT SECTION 1004. HMA: IDOT SECTION 406, MIX D N50 SURFACE, IL-19.0 BINDER.",
+    "TOPSOIL: STOCKPILED SITE TOPSOIL, SCREENED, 6\" MIN. AFTER SETTLEMENT IN LAWN AREAS.",
+    "##TESTING & ACCEPTANCE",
+    "OWNER'S TESTING AGENCY: COMPACTION (1 PER 2,500 SF PER LIFT, 1 PER 100 LF OF TRENCH PER 2' OF "
+    "DEPTH), CONCRETE (SLUMP, AIR, TEMP., 4 CYLINDERS PER 50 CY OR DAILY). FAILED TESTS RETESTED AT "
+    "THE CONTRACTOR'S EXPENSE.",
+    "WATER: PRESSURE / LEAKAGE (AWWA C600) AND DISINFECTION (AWWA C651) WITH 2 CONSECUTIVE "
+    "SATISFACTORY BACTERIOLOGICAL SAMPLES. SEWERS: AIR TEST, MANDREL TEST, MANHOLE VACUUM TEST "
+    "(ASTM C1244).",
+    "##RESTORATION & CLOSEOUT",
+    "RESTORE ALL AREAS DISTURBED OUTSIDE THE LIMIT OF WORK TO EQUAL OR BETTER CONDITION AT NO "
+    "COST. WARRANTY ON SOD AND SEED UNTIL 70% UNIFORM COVER IS ACHIEVED.",
+    "SUBMIT AS-BUILT DRAWINGS SHOWING FINAL LOCATIONS, INVERTS AND RIMS OF ALL UTILITIES AND "
+    "STRUCTURES, PREPARED BY AN ILLINOIS PROFESSIONAL LAND SURVEYOR.",
+]
+
+
+def draw_c500(sh):
+    cells = sh.cells(5, 3)
+    fns = [det_sidewalk, det_curb, det_patch, det_stoop, det_ramp,
+           det_silt, det_inlet, det_entrance, det_trench, det_cleanout,
+           det_manhole, det_thrust, det_tpf]
+    for fn, cl in zip(fns, cells):
+        fn(sh, cl)
+    nc = sh.merge_cells(cells, [13, 14])
+    # erase the divider between the two merged cells
+    xm = cells[14]["x"]
+    sh.line((xm, nc["y"] + 0.02), (xm, nc["y"] + nc["h"] - 0.02), lw=1.4, color="white")
+    notes_block(sh, nc["x"] + 0.25, nc["y"] + nc["h"] - 0.25, "CIVIL GENERAL NOTES",
+                CIVIL_GENERAL_NOTES, nc["w"] - 0.5, size=NT)
+
+
+# ========================================================================================
 SHEETS = [
     ("C-100", "EXISTING CONDITIONS &\nSITE DEMOLITION PLAN", draw_c100),
     ("C-200", "SITE LAYOUT &\nPAVING PLAN", draw_c200),
     ("C-300", "GRADING & EROSION\nCONTROL PLAN", draw_c300),
     ("C-400", "SITE UTILITY PLAN", draw_c400),
+    ("C-500", "CIVIL DETAILS", draw_c500),
 ]

@@ -1666,9 +1666,12 @@ def section_1(v):
     # girders on grid 3 beyond
     for (y0, y1, nm) in ((0.0, 30.0, "W24x55"), (30.0, 42.0, "W12x19"), (42.0, 72.0, "W24x55")):
         d = BEAMS[nm][0] * IN
-        for zt in (L2 - SLAB2,):
-            v.line((y0 + 0.3, zt - d), (y1 - 0.3, zt - d), lw="fine", color="g50")
-            v.line((y0 + 0.3, zt - d + 0.6 * IN), (y1 - 0.3, zt - d + 0.6 * IN), lw="hair", color="g50")
+        zt = L2 - SLAB2
+        a0, a1 = max(y0, SPANDREL_OFF + 0.6) + 0.2, min(y1, 72 - SPANDREL_OFF - 0.6) - 0.2
+        if nm == "W12x19":
+            a0, a1 = y0 + 0.4, y1 - 0.4
+        v.polyline([(a0, zt), (a0, zt - d), (a1, zt - d), (a1, zt)], lw="fine", color="g50")
+        v.line((a0, zt - d + 0.6 * IN), (a1, zt - d + 0.6 * IN), lw="hair", color="g50")
     # casework in room 113 on the x = 60 wall (beyond): base, counter, wall cabinets, tall cab.
     for zf in (L1, L2):
         R(v, 4.0, zf + 4 * IN, 16.0, zf + 34.5 * IN, lw="fine", color="g40")
@@ -1720,7 +1723,8 @@ def section_1(v):
         for y0, y1, yy in ((CMUh, 30 - CMUh, 15.0), (30 + CMUh, 42 - CMUh, 36.0), (42 + CMUh, 72 - CMUh, 57.0)):
             r = room_at(lev, xc, yy)
             ceiling(v, y0, y1, zf + r.clg_ht)
-            room_tag(v, (yy, zf + 5.2), r.name, r.num, size=TXT["label"])
+            room_tag(v, ({15.0: 25.5, 36.0: 36.0, 57.0: 57.0}[yy], zf + 5.2), r.name, r.num,
+                     size=TXT["label"])
     # cubbies (CW-5) at the corridor walls - cut
     for zf in (L1, L2):
         R(v, 30 - CMUh - 1.25, zf + 4 * IN, 30 - CMUh, zf + 64 * IN, lw="thin", fill="white")
@@ -1743,7 +1747,7 @@ def section_dims_1(v):
     dchain(v, [(72 + OUT + 4.0, z) for z in (L1, L2, ROOF, PARAPET)], 0.0, size=TXT["tiny"])
     v.dim((72 + OUT + 7.0, GRADE), (72 + OUT + 7.0, PARAPET), 0.0, size=TXT["tiny"])
     # ceiling heights (AFF)
-    for yy, zf in ((22.5, L1), (22.5, L2), (39.5, L1), (39.5, L2)):
+    for yy, zf in ((20.5, L1), (20.5, L2), (39.5, L1), (39.5, L2)):
         r = room_at("L1" if zf == L1 else "L2", 75.0, yy)
         v.dim((yy, zf), (yy, zf + r.clg_ht), 0.0, size=TXT["tiny"],
               text=ftxt(r.clg_ht) + " CLG.")
@@ -1865,7 +1869,7 @@ def section_2(v):
 def section_3(v):
     """LINK SECTION at x = -18 looking east (h = -y)"""
     H = lambda y: -y
-    f = FACES["W"].cropped(17.0, 55.0)
+    f = FACES["W"].cropped(17.0, 53.0)
     rg = render_face(v, f)
     a, b = sorted((H(30 + CMUh), H(42 - CMUh)))
     z_lr = LINK_ROOF + DECK + LINK_INS_MIN + COVER
@@ -1876,11 +1880,11 @@ def section_3(v):
     hl, hr = sorted((H(d100.lo), H(d100.hi)))
     draw_door_elev(v, d100, hl, hr, tag=False)
     door_tag(v, ((hl + hr) / 2, 104.8), "100A", size=TXT["tiny"])
-    for hh in (H(17.0), H(55.0)):
+    for hh in (H(17.0), H(53.0)):
         break_line(v, (hh, GRADE - 2.0), (hh, PARAPET + 2.0), zig=0.1)
     # link cut at x = -18: storefront SF-3 through the mullion, HSS columns, curb
     earth(v, H(30 - OUT) + 0.01, H(17.0), BOF - 1.0, GRADE)
-    earth(v, H(55.0), H(42 + OUT) - 0.01, BOF - 1.0, GRADE)
+    earth(v, H(53.0), H(42 + OUT) - 0.01, BOF - 1.0, GRADE)
     sf = M.OPENING_BY_ID["100A-SF1"]
     for yg, ext, key in ((42.0, +1, "LN"), (30.0, -1, "LS")):
         se = -ext
@@ -1906,9 +1910,9 @@ def section_3(v):
         v.line((H(yy), LINK_ROOF + DECK + tt + COVER), (H(yy), LINK_PAR), lw="med")
     ceiling(v, a, b, 109.5)
     rl = room_at("L1", -18.0, 36.0)
-    room_tag(v, (H(36.0), 104.6 - 1.4), rl.name, rl.num, size=TXT["label"])
+    room_tag(v, (H(36.0), 108.1), rl.name, rl.num, size=TXT["small"])
     grade_line(v, H(17.0), H(30 - OUT))
-    grade_line(v, H(42 + OUT), H(55.0))
+    grade_line(v, H(42 + OUT), H(53.0))
     return f
 
 
@@ -1953,17 +1957,18 @@ def notes_section_1(v):
     lnote(v, (10.0, roof_top(75, 10.0) - 0.1), (3.0, 135.2),
           "ROOF R-1: 60-MIL EPDM FULLY ADHERED / 1/2\" COVER BD. / TAPERED POLYISO 1/4\":12 "
           "(1 1/2\" MIN. AT DRAIN LINE, R-30 AVG.) / 1 1/2\" TYPE B DECK", width=3.4)
-    lnote(v, (8.0, ROOF - 12 * IN), (4.0, 125.2), "22K6 JOISTS @ 5'-0\" O.C.")
+    lnote(v, (8.0, ROOF - 12 * IN), (11.0, 125.3), "22K6 JOISTS @ 5'-0\" O.C.")
     lnote(v, (36.5, ROOF - 6 * IN), (33.0, 125.6), "12K1 @ 5'-0\" O.C.")
     lnote(v, (61.0, ROOF - 12 * IN), (66.0, 125.2), "22K6 @ 5'-0\" O.C.")
-    lnote(v, (20.0, L2 - 0.25), (22.5, 112.1), "L2: 3 1/4\" LW CONC. ON 3\" COMP. DECK", width=None)
-    lnote(v, (10.0, L2 - SLAB2 - 0.6), (13.0, 111.1), "W16x26 INFILL BEAM")
-    lnote(v, (42.0, L2 - SLAB2 - 0.8), (47.0, 111.6), "W18x35 ON CMU (S-102)")
+    lnote(v, (16.0, L2 - 0.25), (18.5, 115.3), "F-2: 3 1/4\" LW CONC. ON 3\" COMP. DECK", width=None)
+    lnote(v, (10.0, L2 - SLAB2 - 0.6), (13.0, 112.7), "W16x26 INFILL BEAM")
+    lnote(v, (42.0, L2 - SLAB2 - 0.8), (47.0, 110.8), "W18x35 ON CMU (S-102)")
     lnote(v, (42.0, 108.0), (46.0, 108.6), "P1 8\" CMU TO U/S OF BEAM")
     lnote(v, (30.0, L1 - 0.8), (24.0, 97.4), "THICKENED SLAB 2'-0\"x1'-0\" (S-301)")
     lnote(v, (50.0, L1 - 0.2), (55.0, 97.4), "5\" SOG, 15-MIL V.R., 6\" CA-6 (F-1)")
     lnote(v, (43.3, 104.0), (47.5, 105.0), "CW-5 CUBBIES (A-601)")
-    lnote(v, (10.0, 108.0), (4.5, 108.6) if False else (10.0, 108.6), "CASEWORK BEYOND", mask=True)
+    lnote(v, (13.0, L1 + 6.5), (18.5, 108.4), "CASEWORK BEYOND (A-601)")
+    lnote(v, (22.0, L2 - SLAB2 - 1.6), (24.5, 110.7), "W24x55 GIRDER BEYOND")
 
 
 def notes_section_2(v):
@@ -1985,14 +1990,13 @@ def notes_section_2(v):
 
 
 def notes_section_3(v):
-    lnote(v, (-42.0 - 0.3, 104.0), (-48.5, 106.0), "SF-3 ON 8\" CONC. CURB", width=None)
+    lnote(v, (-42.0 - 0.55, 103.0), (-48.5, 104.6), "SF-3 ON 8\" CONC. CURB", width=None)
     lnote(v, (-42.0, 110.6), (-49.0, 111.6), "LINTEL BEAM (S-302)")
     lnote(v, (-30.0, 106.0), (-24.5, 106.8), "HSS 5x5x1/4 COL.")
-    lnote(v, (-36.0, LINK_ROOF + 0.3), (-36.0, 119.5) if False else (-38.5, 119.6),
-          "ROOF R-2: 1/4\":12 TO SCUPPER")
-    lnote(v, (-35.0, LINK_ROOF - 0.5), (-24.0, 111.5) if False else (-25.0, 112.2), "12K1 JOIST")
-    lnote(v, (-36.0, W0_SHELF - 0.3), (-23.5, 117.8) if False else (-24.0, 116.6),
-          "BASE FLASHING & SHELF ANGLE (14/A-501)", width=1.25)
+    lnote(v, (-33.0, LINK_ROOF + 0.3), (-28.0, 112.4), "ROOF R-2: 1/4\":12 TO SCUPPER")
+    lnote(v, (-35.0, LINK_ROOF - 0.5), (-28.0, 110.8), "12K1 JOIST")
+    lnote(v, (-36.0, W0_SHELF - 0.3), (-28.0, 116.3), "BASE FLASHING & SHELF ANGLE",
+          width=None)
 
 
 ASSEMBLIES = [
@@ -2105,7 +2109,7 @@ def draw_a301(sh):
     sec_levels(v3, -17.0 + 9.0, -17.0 + 0.6, side="r",
                extra=[(LINK_ROOF + 0.001, ""), (LINK_PAR, "LINK T.O. PARAPET")][1:])
     ty3 = v3.to_paper((0, BOF - 6.0))[1]
-    sh.view_title(v3.to_paper((-55.0, 0))[0], ty3, 3, "LINK SECTION", S3, width=5.0,
+    sh.view_title(v3.to_paper((-53.0, 0))[0], ty3, 3, "LINK SECTION", S3, width=5.0,
                   note="AT x = -18'-0\", LOOKING EAST")
     # ---- notes band ----
     top = min(ty1, ty3) - 0.6

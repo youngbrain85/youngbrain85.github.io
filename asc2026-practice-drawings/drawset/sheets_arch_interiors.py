@@ -884,6 +884,9 @@ def stair_annot(sh, v, g, name, level):
                  side="l", size=ns)
 
 
+SUMP = (HOIST["E"] - 2.3, HOIST["S"] + 1.3)     # 24" x 24" x 24" sump pit (plan LL corner)
+
+
 def elevator_plan(sh, ox, oy, scale=1 / 2, level="L1"):
     box_ = (20.3, 20.3, 30.9, 32.3)
     v = sh.view(ox, oy, scale, mx=box_[0], my=box_[1])
@@ -920,15 +923,15 @@ def elevator_plan(sh, ox, oy, scale=1 / 2, level="L1"):
     v.rect(28.05, H["N"] - 0.7, 1.5, 0.58, lw="fine", dash="hidden")
     for xx in (28.05, 29.55):
         v.line((xx, H["N"]), (xx, H["N"] - 0.7), lw="hair", dash="hidden")
-    v.rect(H["W"] + 0.3, H["S"] + 1.3, 2.0, 2.0, lw="fine", dash="hidden")
-    v.rect(H["E"] - 2.55, H["S"] + 1.25, 2.2, 1.6, lw="fine", dash="dashed")
+    v.rect(SUMP[0], SUMP[1], 2.0, 2.0, lw="fine", dash="hidden")
+    v.rect(H["W"] + 0.35, H["S"] + 1.25, 2.2, 1.6, lw="fine", dash="dashed")
     # labels / notes
     btext(v, (cx, yf - cd / 2 + 0.6), "ELEV. " + ("108" if level == "L1" else "208"),
           size=TXT["label"], font=FONT_B)
     btext(v, (cx, yf - cd / 2 - 0.2), "3,500 LB MRL TRACTION\n2 STOPS (L1, L2)", size=TXT["small"])
     btext(v, (cx, H["S"] + 0.68), "CWT", size=TXT["tiny"])
-    btext(v, (H["W"] + 1.3, H["S"] + 2.3), "SUMP\nBELOW", size=TXT["tiny"])
-    btext(v, (H["E"] - 1.45, H["S"] + 2.05), "MRL MACH.\nABOVE", size=TXT["tiny"])
+    btext(v, (SUMP[0] + 1.0, SUMP[1] + 1.0), "SUMP\nBELOW", size=TXT["tiny"])
+    btext(v, (H["W"] + 1.45, H["S"] + 2.05), "MRL MACH.\nABOVE", size=TXT["tiny"])
     ns = TXT["small"]
     note(v, (29.4, H["N"] - 0.4), (30.75, 28.2), "PIT LADDER\n(BELOW)", side="r", size=ns)
     note(v, (H["E"] - 0.17, yf - cd / 2 - 0.1), (30.75, 23.3), "CAR GUIDE\nRAIL", side="r",
