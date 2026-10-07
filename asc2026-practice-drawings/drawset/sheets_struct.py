@@ -2146,21 +2146,17 @@ def lintel_rows():
 def d302_cmu_elev(sh, cell):
     sc = 3 / 16
     x0, x1 = 58.0, 92.0
-    v = _dview(sh, cell, sc, (x0 - 3.0, 97.0, x1 + 34.0, 134.5), dx=0.0)
+    bw = (cell["w"] - 0.1) / sc
+    v = _dview(sh, cell, sc, (x0 - 8.0, 96.6, x0 - 8.0 + bw, 134.5), dx=0.0)
     y0, ytop = EL_TOW, M.LEVELS["PARAPET"]
     ops = [o for o in M.OPENINGS if o.wall == "S" and 60 < o.c < 90]
     # CMU field
     v.rect(x0, y0, x1 - x0, ytop - y0, lw="med", fill="white")
-    k = 1
-    while y0 + k * 8 * IN < ytop - 1e-6:
-        y = y0 + k * 8 * IN
-        v.line((x0, y), (x1, y), lw=0.15, color="g40")
-        k += 1
     # joint reinforcing @ 16"
     k = 1
     while y0 + k * 16 * IN < ytop - 1e-6:
         y = y0 + k * 16 * IN + 0.02
-        v.line((x0, y), (x1, y), lw=0.3, dash=[1.5, 1.0], color="g50")
+        v.line((x0, y), (x1, y), lw=0.25, dash=[1.2, 1.2], color="g50")
         k += 1
     # bond beams
     bbs = [(112 + 8 * IN, EL_L2, "L2 BOND BEAM"), (127 + 4 * IN, EL_ROOF, "ROOF BOND BEAM"),
@@ -2203,17 +2199,16 @@ def d302_cmu_elev(sh, cell):
     _dgrid(v, 60.0, y0 - 1.2, ytop + 1.0, "3")
     _dgrid(v, 90.0, y0 - 1.2, ytop + 1.0, "4")
     for el, lab in ((ytop, "T.O. PARAPET"), (EL_ROOF, "ROOF"), (EL_L2, "LEVEL 2"),
-                    (EL_L1, "LEVEL 1"), (y0, "T.O. FDN. WALL")):
-        _lev(v, x1 + 2.6, el, lab, "r", x_from=x1 + 0.4)
+                    (y0, "T.O. FDN. WALL")):
+        _lev(v, x1 + 2.0, el, lab, "r", x_from=x1 + 0.4)
     o = ops[0]
-    _dim(v, (o.hi + 4 * IN, y0 - 1.3), (ops[1].lo - 4 * IN, y0 - 1.3), 0)
-    _dim(v, (o.lo - 4 * IN, y0 - 1.3), (o.hi + 4 * IN, y0 - 1.3), 0)
+    _dimc(v, [(60.0, y0 - 1.3), (o.lo, y0 - 1.3), (o.hi, y0 - 1.3), (ops[1].lo, y0 - 1.3)], 0)
     _dim(v, (o.lo + 1.33, 104.0 - 3.0), (o.lo + 5.33, 104.0 - 3.0), 0, text="4'-0\" MAX.")
     _dim(v, (o.lo - 8 * IN, o.head + 16 * IN + 0.2), (o.lo, o.head + 16 * IN + 0.2), 0.3)
     # notes in the open area right of the elevation
-    nx = x1 + 11.0
+    nx = x1 + 9.5
     notes = [
-        "##EXTERIOR CMU (EW-1 BACKUP) - TYPICAL BAY SHOWN (SOUTH WALL, GRIDS 3-4)",
+        "##EXTERIOR CMU (EW-1 BACKUP)",
         "VERTICAL: #5 @ 48\" O.C. MAX. (STAIR / ELEVATOR SHEAR WALLS #5 @ 32\" O.C.), CENTERED IN CELLS, CONTINUOUS FROM FOUNDATION DOWELS TO TOP BOND BEAM; LAP 30\" (48 BAR DIA.).",
         "AT EACH SIDE OF OPENINGS: (2) #5 IN FIRST CELL, FULL HEIGHT. AT CORNERS, WALL ENDS AND EACH SIDE OF EMBEDDED COLUMNS: (1) #5 EACH. EACH SIDE OF CONTROL JOINTS: (1) #5.",
         "BOND BEAMS (GROUT SOLID): L2 = 2 COURSES 112'-8\" TO 114'-0\" W/ (2) #5 EACH COURSE; ROOF = 127'-4\" TO 128'-0\" W/ (2) #5; TOP OF PARAPET = 130'-8\" TO 131'-4\" W/ (2) #5. BOND BEAM BARS CONTINUOUS THROUGH CONTROL JOINTS (CHORD), LAP 30\" AT SPLICES, BENT BARS AT CORNERS.",
@@ -2226,13 +2221,13 @@ def d302_cmu_elev(sh, cell):
     px, py = v.to_paper((nx, 133.5))
     notes_block(sh, px, py, "CMU REINFORCING", notes, cell["x"] + cell["w"] - px - 0.25,
                 size=TXT["small"], title_size=TXT["small"] * 1.2)
-    _ldr(v, (63.0, 113.3), (x0 - 1.5, 116.0), "L2 BOND BEAM", "l")
-    _ldr(v, (63.0, 127.6), (x0 - 1.5, 129.4), "ROOF BOND BEAM", "l")
-    _ldr(v, (66.0, 131.0), (x0 - 1.5, 133.0), "TOP BOND BEAM", "l")
-    _ldr(v, (64.0, 109.9), (x0 - 1.5, 111.0), "CL-2 LINTEL", "l")
-    _ldr(v, (o.lo - 4 * IN - 0.08, 106.0), (x0 - 1.5, 106.6), "(2) #5 JAMB", "l")
-    _ldr(v, (60.6, 101.5), (x0 - 1.5, 101.5), "#5 EA. SIDE\nOF COLUMN", "l")
-    _ldr(v, (61.5, 120.0 + 16 * IN * 0.0), (x0 - 1.5, 121.0), "JT. REINF.\n@ 16\" O.C.", "l")
+    _ldr(v, (63.0, 113.3), (x0 - 0.8, 116.0), "L2 BOND BEAM", "l")
+    _ldr(v, (63.0, 127.6), (x0 - 0.8, 129.4), "ROOF BOND BEAM", "l")
+    _ldr(v, (66.0, 131.0), (x0 - 0.8, 133.0), "TOP BOND BEAM", "l")
+    _ldr(v, (64.0, 109.9), (x0 - 0.8, 111.0), "CL-2 LINTEL", "l")
+    _ldr(v, (o.lo - 4 * IN - 0.08, 106.0), (x0 - 0.8, 106.6), "(2) #5 JAMB", "l")
+    _ldr(v, (60.6, 101.5), (x0 - 0.8, 101.5), "#5 EA. SIDE\nOF COLUMN", "l")
+    _ldr(v, (61.5, 120.0 + 16 * IN * 0.0), (x0 - 0.8, 121.0), "JT. REINF.\n@ 16\" O.C.", "l")
     _dtitle(sh, cell, 1, "TYPICAL EXTERIOR CMU REINFORCING ELEVATION", sc)
 
 
@@ -2274,7 +2269,24 @@ def d302_lintels(sh, cell):
     ]
     notes_block(sh, nx, yy2, "LINTEL NOTES", notes, cell["x"] + cell["w"] - nx - 0.2,
                 size=TXT["small"], title_size=TXT["small"] * 1.2)
-    sh.text((cell["x"] + 0.25, cell["y"] + 0.3), "2", size=TXT["sub"], font=FONT_B, valign="mid")
+    # takeoff summary (lintel types x count x length)
+    summ = OrderedDict()
+    for r in rows:
+        if r["w"] > 20:
+            continue
+        for mk in (r["cl"], r["bl"]):
+            if mk in ("-",):
+                continue
+            L = r["w"] + 2 * _brg(mk) / 12.0
+            c = summ.setdefault(mk, [0, 0.0])
+            c[0] += r["qty"]
+            c[1] += r["qty"] * L
+    srows = [[k, LINTEL_TYPES[k].split(",")[0], str(n), f"{L:,.1f}"] for k, (n, L) in
+             sorted(summ.items())]
+    srows.append(["HSS8x8", "LINK SF-3 HEAD BEAMS (S-103)", "4", "70.0"])
+    srows.append(["W10x33", "EXIST. WALL OPENING (12/S-302)", "1", "13.0"])
+    table(sh, x, yy - 0.15, [("MARK", 0.7), ("LINTEL", 3.7), ("QTY", 0.5), ("TOTAL LF", 0.8)], srows,
+          row_h=0.18, size=TXT["small"], title="LINTEL TAKEOFF SUMMARY", align=["c", "l", "c", "r"])
     sh.view_title(cell["x"] + 0.18, cell["y"] + 0.40, 2, "LINTEL SCHEDULE", "SCALE: NONE",
                   width=4.0)
 
@@ -2286,8 +2298,8 @@ def d302_lintel_sec(sh, cell):
     # A: exterior head at W-A (L1)
     c = dict(x=cell["x"], y=cell["y"] + title_h + hh, w=cell["w"], h=hh)
     hd = 109 + 4 * IN
-    v = sh.view(c["x"] + 2.75, c["y"] + 0.35, sc, 0.0, hd - 0.9)
-    top = hd + 2.2
+    v = sh.view(c["x"] + 2.75, c["y"] + 0.2, sc, 0.0, hd - 0.9)
+    top = hd + 2.0
     _cmu_sec(v, -CMUh, CMUh, hd, top, grout=[(hd, hd + 16 * IN)])
     _bars(v, [(-0.1, hd + 0.3), (0.1, hd + 0.3)])
     _insul_sec(v, CMUh, CMUh + 2 * IN, hd, top)
@@ -2298,7 +2310,7 @@ def d302_lintel_sec(sh, cell):
                 (11.4375 * IN + 0.05, hd + 0.03)], lw="med")
     v.rect(-CMUh, hd - 0.9, 11.4375 * IN + CMUh, 0.9, lw="hair", dash="hidden")
     _brk_h(v, top, -0.5, 1.1)
-    _ldr(v, (0.0, hd + 1.0), (-0.7, hd + 2.0), "CL-2: 16\" CMU LINTEL,\n(2) #5 BOT., GROUT\nSOLID; 8\" BRG.", "l")
+    _ldr(v, (0.0, hd + 1.0), (-0.7, hd + 1.55), "CL-2: 16\" CMU LINTEL,\n(2) #5 BOT., GROUT\nSOLID; 8\" BRG.", "l")
     _ldr(v, (-0.1, hd + 0.3), (-0.7, hd + 0.9), "(2) #5", "l")
     _ldr(v, (-0.2, hd - 0.4), (-0.7, hd - 0.35), "W-A WINDOW\nBELOW (A-711)", "l")
     _ldr(v, (0.8, hd + 0.3), (1.35, hd + 1.9), "FB-2 SOLDIER COURSE\n(A-501)", "r")
@@ -2375,12 +2387,12 @@ def d302_shelf(sh, cell):
     _ldr(v, (xs - 0.1, EL_TOS2 - 0.7), (xl, 112.9), "W16x31 SPANDREL, 7 1/2\"\nINBOARD OF GRID (T.O.S.\n113'-5 3/4\")", "l")
     _ldr(v, (-0.15, bb0 + 0.3), (xl, 111.75), "L2 BOND BEAM 112'-8\" TO\n114'-0\", (2) #5 EA. COURSE", "l")
     xr = 1.25
-    _ldr(v, (bx0 + 1 * IN, ang_top + 4 * IN), (xr, 115.3), "CS-2 CAST STONE BAND\n113'-4\" TO 114'-0\" (A-501)", "r")
+    _ldr(v, (bx0 + 1 * IN, ang_top + 4 * IN), (xr, 115.45), "CS-2 CAST STONE BAND\n113'-4\" TO 114'-0\" (A-501)", "r")
     _ldr(v, (CMUh + 3 * IN, ang_top - 0.02), (xr, 114.1), "L7x4x7/16 LLH SHELF ANGLE,\nCONT. (GALV.), 1/4\" GAP\nAT 20'-0\" MAX.", "r")
     _ldr(v, (0.2, ang_top - 2 * IN), (xr, 113.25), "3/4\" DIA. A307 EMBEDDED\nBOLTS @ 24\" O.C. IN\nGROUTED BOND BEAM", "r")
     _ldr(v, (bx1 - 0.5 * IN, ang_top - 0.07), (xr, 112.45), "3/8\" SOFT JOINT + SEALANT;\nFLASHING & WEEPS (A-501)", "r")
     _ldr(v, (CMUh + 1 * IN, 111.8), (xr, 111.65), "2\" POLYISO (CUT AT ANGLE)", "r")
-    _lev(v, 2.3, EL_L2, "", "r")
+    _lev(v, 2.35, EL_L2, "LEVEL 2", "r", x_from=1.2)
     _dim(v, (CMUh, ang_top + 1.0), (CMUh + 7 * IN, ang_top + 1.0), 0, text="7\"")
     _dim(v, (-0.0, y1 - 0.15), (xs, y1 - 0.15), 0, text="7 1/2\"")
     v.line((0.0, y0), (0.0, y1), lw="hair", dash="center")
@@ -2455,8 +2467,9 @@ def d302_tow_perp(sh, cell):
     title_h = 0.62
     hh = (cell["h"] - title_h) / 2
     # A: wall perpendicular to joists (joist in elevation crosses over the wall)
+    sc = 3 / 4
     c = dict(x=cell["x"], y=cell["y"] + title_h + hh, w=cell["w"], h=hh)
-    v = sh.view(c["x"] + c["w"] / 2 - 0.3, c["y"] + 0.35, sc, 0.0, 124.5)
+    v = sh.view(c["x"] + c["w"] / 2 - 0.3, c["y"] + 0.3, sc, 0.0, 124.5)
     tw = 125 + 4 * IN
     _cmu_sec(v, -CMUh, CMUh, 124.6, tw, grout=[(tw - 8 * IN, tw)], course0=114.0)
     _bars(v, [(-0.1, tw - 0.33), (0.1, tw - 0.33)], 0.5)
@@ -2477,18 +2490,18 @@ def d302_tow_perp(sh, cell):
     _brk_v(v, -2.2, bc - 0.1, EL_ROOF + 0.2)
     _brk_v(v, 2.2, bc - 0.1, EL_ROOF + 0.2)
     _brk_h(v, 124.6, -0.5, 0.5)
-    _ldr(v, (1.4, EL_ROOF - 1 * IN), (1.0, 128.75), "K-JOIST (ELEVATION), 1 1/2\" DECK ABOVE", "r")
-    _ldr(v, (CMUh + 2 * IN, bc - 0.1 * IN), (0.9, 125.95), "L4x4x1/4 x 0'-4\" EA. SIDE AT\nEA. JOIST, WELD TO BOTTOM\nCHORD; SLOTTED, NO ANCHOR\nTO CMU (DEFLECTION)", "r")
-    _ldr(v, (0.0, tw + 0.3 * IN), (-0.8, 127.6), "1\" MIN. GAP W/ COMPRESSIBLE\nFILLER (FIRESTOP AT P2)", "l")
-    _ldr(v, (-0.1, tw - 0.33), (-0.8, 125.2), "8\" BOND BEAM,\n(2) #4 CONT.", "l")
+    _ldr(v, (1.6, EL_ROOF - 1 * IN), (2.4, 127.6), "K-JOIST\n(ELEVATION)", "r")
+    _ldr(v, (CMUh + 2 * IN, bc - 0.1 * IN), (1.0, 125.2), "L3x3x1/4 x 1'-4\" (VERT.) EA. SIDE\nAT EA. JOIST: WELD TO BOTTOM\nCHORD, 1/2\" ADH. ANCHOR IN\nVERT. SLOT AT BOND BEAM", "r")
+    _ldr(v, (0.0, tw + 0.3 * IN), (-0.9, 126.6), "10\" TO JOIST B.C. (126'-2\"):\nCOMPRESSIBLE FILLER /\nFIRESTOP AT P2 WALLS", "l")
+    _ldr(v, (-0.1, tw - 0.33), (-0.9, 125.0), "8\" BOND BEAM,\n(2) #4 CONT.", "l")
     sh.text((c["x"] + 0.25, c["y"] + hh - 0.12), "A. WALL PERPENDICULAR TO JOISTS (T.O. CMU 125'-4\")",
             size=TXT["small"], font=FONT_B, valign="top", underline=True)
     # B: wall under beam
     c = dict(x=cell["x"], y=cell["y"] + title_h, w=cell["w"], h=hh)
-    v = sh.view(c["x"] + c["w"] / 2 - 0.3, c["y"] + 0.35, sc, 0.0, 109.3)
+    v = sh.view(c["x"] + c["w"] / 2 - 0.3, c["y"] + 0.3, sc, 0.0, 110.3)
     bos = EL_TOS2 - 17.7 * IN
     tw = bos - 1 * IN
-    _cmu_sec(v, -CMUh, CMUh, 109.4, tw, grout=[(tw - 8 * IN, tw)], course0=100.0)
+    _cmu_sec(v, -CMUh, CMUh, 110.4, tw, grout=[(tw - 8 * IN, tw)], course0=100.0)
     _bars(v, [(-0.1, tw - 0.33), (0.1, tw - 0.33)], 0.5)
     _wsec(v, 0.0, EL_TOS2, 17.7, 6.0, 0.425, 0.3)
     v.polygon([(-2.2, EL_TOS2), (2.2, EL_TOS2), (2.2, EL_L2), (-2.2, EL_L2)], lw="thin",
@@ -2501,14 +2514,14 @@ def d302_tow_perp(sh, cell):
                   lw="fine", fill="black")
     _brk_v(v, -2.2, EL_TOS2 - 0.1, EL_L2 + 0.1)
     _brk_v(v, 2.2, EL_TOS2 - 0.1, EL_L2 + 0.1)
-    _brk_h(v, 109.4, -0.5, 0.5)
-    _ldr(v, (0.1, EL_TOS2 - 0.8), (0.9, 113.2), "BEAM ABOVE (W18x35 SHOWN)", "r")
-    _ldr(v, (CMUh + 0.4 * IN, tw - 2 * IN), (0.9, 111.55), "L4x4x1/4 x 0'-4\" EA. SIDE @\n4'-0\" O.C., WELD TO BOTTOM\nFLANGE; DO NOT ANCHOR TO CMU", "r")
-    _ldr(v, (0.0, tw + 0.5 * IN), (-0.8, 112.3), "1\" GAP: COMPRESSIBLE\nFILLER / FIRESTOP", "l")
-    _ldr(v, (-0.1, tw - 0.33), (-0.8, 110.4), "TOP COURSE CUT TO\nFIT; 8\" BOND BEAM", "l")
+    _brk_h(v, 110.4, -0.5, 0.5)
+    _ldr(v, (0.1, EL_TOS2 - 0.8), (1.0, 113.3), "BEAM ABOVE\n(W18x35 SHOWN)", "r")
+    _ldr(v, (CMUh + 0.4 * IN, tw - 2 * IN), (1.0, 111.3), "L4x4x1/4 x 0'-4\" EA. SIDE @\n4'-0\" O.C., WELD TO BOTTOM\nFLANGE; NO ANCHOR TO CMU", "r")
+    _ldr(v, (0.0, tw + 0.5 * IN), (-0.9, 112.6), "1\" GAP: COMPRESSIBLE\nFILLER / FIRESTOP", "l")
+    _ldr(v, (-0.1, tw - 0.33), (-0.9, 110.9), "TOP COURSE CUT TO\nFIT; 8\" BOND BEAM", "l")
     sh.text((c["x"] + 0.25, c["y"] + hh - 0.12), "B. WALL BELOW BEAM (T.O. CMU = B.O.S. - 1\")",
             size=TXT["small"], font=FONT_B, valign="top", underline=True)
-    _dtitle(sh, cell, 6, "TOP OF CMU - PERPENDICULAR / AT BEAM", sc)
+    _dtitle(sh, cell, 6, "TOP OF CMU - PERPENDICULAR / AT BEAM", 3 / 4)
 
 
 def d302_tow_par(sh, cell):
@@ -2537,8 +2550,8 @@ def d302_tow_par(sh, cell):
     _ldr(v, (-1.4, EL_ROOF + 1.0 * IN), (-1.2, 128.65), "R1 ROOF DECK (1 1/2\" TYPE B)", "l")
     _ldr(v, (-2.5, EL_ROOF - 1.3 * IN), (-1.6, 126.2), "K-JOIST TOP CHORD\n(JOISTS @ 5'-0\" O.C.)", "l")
     _ldr(v, (-0.1, tw - 0.33), (-1.0, 125.0), "8\" BOND BEAM, (2) #4 CONT.\nT.O. CMU 127'-4\"", "l")
-    _ldr(v, (CMUh + 1.5 * IN, tw + 1.0 * IN), (1.1, 125.6), "L3x3x1/4 x 0'-6\" CLIP W/ (1) 1/2\"\nADHESIVE ANCHOR INTO BOND BEAM", "r")
-    _ldr(v, (1.2, (tw + EL_ROOF) / 2 + 0.08), (1.3, 128.7), "L2 1/2x2 1/2x1/4 KICKER @ 6'-0\" O.C.,\nALTERNATE SIDES; WELD TO JOIST TOP\nCHORD AT PANEL POINT; BOLT TO CLIP\nW/ 1/2\" A307 IN VERT. SLOT", "r")
+    _ldr(v, (CMUh + 1.5 * IN, tw + 1.0 * IN), (1.1, 125.3), "L3x3x1/4 x 0'-6\" CLIP W/ (1) 1/2\"\nADHESIVE ANCHOR INTO BOND BEAM", "r")
+    _ldr(v, (1.2, (tw + EL_ROOF) / 2 + 0.08), (1.1, 126.75), "L2 1/2x2 1/2x1/4 KICKER @ 6'-0\" O.C.,\nALTERNATE SIDES; WELD TO JOIST TOP\nCHORD AT PANEL POINT; BOLT TO CLIP\nW/ 1/2\" A307 IN VERT. SLOT", "r")
     _dim(v, (-CMUh - 0.3, tw), (-CMUh - 0.3, EL_ROOF), 0, text="8\"")
     notes = [
         "TOP OF INTERIOR CMU FOR TAKEOFF: UNDER DECK 113'-4\" (L1) / 127'-4\" (L2) TYPICAL.",
@@ -2553,7 +2566,7 @@ def d302_tow_par(sh, cell):
 
 def d302_joist_brg(sh, cell):
     sc = 1.5
-    v = _dview(sh, cell, sc, (-2.0, 125.0, 2.0, 129.2))
+    v = _dview(sh, cell, sc, (-2.3, 125.0, 2.9, 129.2))
     top = EL_ROOF_BM
     _wsec(v, 0.0, top, 17.7, 6.0, 0.425, 0.3)
     for sgn, dep, lab in ((1, 22.0, "22K6"), (-1, 12.0, "12K1")):
@@ -2575,8 +2588,8 @@ def d302_joist_brg(sh, cell):
     _ldr(v, (-1.0, EL_ROOF + 1 * IN), (-0.6, 128.95), "R1 DECK", "l")
     _ldr(v, (1.3, EL_ROOF - 10 * IN), (0.6, 125.7), "22K6 (A-B / C-D)", "r")
     _ldr(v, (-1.0, EL_ROOF - 6 * IN), (-0.6, 126.3), "12K1 (B-C)", "l")
-    _lev(v, 1.95, EL_ROOF, "T.O. JOIST", "r")
-    _lev(v, 1.95, top, "T.O. BEAM", "r")
+    _lev(v, 2.2, EL_ROOF + 0.12, "T.O. JOIST", "r", x_from=1.9, value="128'-0\"")
+    _lev(v, 2.2, top - 0.25, "T.O. BEAM", "r", x_from=1.9, value="127'-9 1/2\"")
     _dtitle(sh, cell, 8, "JOIST BEARING ON BEAM", sc)
 
 
@@ -2640,9 +2653,11 @@ def d302_beam_girder(sh, cell):
                    (x1, tos - d), (x0, tos - d)], lw="thin", fill="white")
         v.line((sgn * 0.5, tos - 0.345 * IN), (x1, tos - 0.345 * IN), lw="fine")
         v.line((x0, tos - d + 0.345 * IN), (x1, tos - d + 0.345 * IN), lw="fine")
-        _pl(v, sgn * 0.2 * IN, tos - 2.5 * IN - 9 * IN, sgn * (0.2 * IN + 4.5 * IN), tos - 2.5 * IN)
+        _pl(v, sgn * 0.2 * IN, tos - 2.5 * IN - 9 * IN, sgn * (0.2 * IN + 4.5 * IN), tos - 2.5 * IN,
+            fill="g20", lw="thin")
         for k in range(3):
-            v.circle((sgn * 2.75 * IN, tos - 4.0 * IN - k * 3 * IN), 0.4 * IN, lw="fine", fill="white")
+            v.circle((sgn * 2.75 * IN, tos - 4.0 * IN - k * 3 * IN), 0.4 * IN, lw="thin", fill="white")
+            v.circle((sgn * 2.75 * IN, tos - 4.0 * IN - k * 3 * IN), 0.12 * IN, lw=None, fill="black")
         _brk_v(v, x1, tos - d - 0.1, tos + 0.1)
     # deck profile (ribs perpendicular to view) + slab
     rib = 12 * IN
@@ -2705,7 +2720,7 @@ def d302_existing(sh, cell):
     title_h = 0.62
     # elevation 1/4"
     sc = 1 / 4
-    v = sh.view(cell["x"] + 0.55, cell["y"] + title_h + 3.0, sc, 25.0, 99.333)
+    v = sh.view(cell["x"] + 0.55, cell["y"] + title_h + 3.15, sc, 25.0, 99.333)
     a, b = 30 + 4 * IN, 42 - 4 * IN
     hd = 109 + 4 * IN
     ytop = M.LEVELS["EXIST_ROOF"]
@@ -2726,34 +2741,34 @@ def d302_existing(sh, cell):
     _brk_v(v, 47.0, 99.0, ytop + 0.3)
     _dim(v, (a, 100.8), (b, 100.8), 0, text="11'-4\" (VERIFY)")
     _dim(v, (b + 2.0, EL_L1), (b + 2.0, hd), 0)
-    _ldr(v, (a + 0.47, hd + 1.65), (26.0, 115.8), "TEMP. NEEDLES (W8 OR 6x6 TIMBER)\n@ 2'-9\" O.C. W/ SHORES EA. SIDE", "r")
-    _ldr(v, (b - 1.0, hd + 0.4), (41.0, 115.8), "W10x33 + PL", "r")
+    _ldr(v, (a + 0.47, hd + 1.65), (26.0, 112.4), "TEMP. NEEDLES (W8 OR 6x6 TIMBER)\n@ 2'-9\" O.C. W/ SHORES EA. SIDE", "r")
+    _ldr(v, (b - 1.0, hd + 0.4), (41.5, 112.4), "W10x33 + PL", "r")
     _ldr(v, (b + 0.5, 104.0), (43.0, 102.0), "NEW GROUTED\nCMU JAMBS", "r")
     sh.text((cell["x"] + 0.25, cell["y"] + cell["h"] - 0.15), "A. ELEVATION (LOOKING WEST) - 1/4\" = 1'-0\"",
             size=TXT["small"], font=FONT_B, valign="top", underline=True)
     # section 3/4"
     sc2 = 3 / 4
-    v2 = sh.view(cell["x"] + 1.8, cell["y"] + title_h + 0.35, sc2, -1.0, hd - 0.6)
+    v2 = sh.view(cell["x"] + 1.05, cell["y"] + title_h + 0.3, sc2, -1.0, hd - 0.6)
     x0w, x1w = -1.0, 0.0
-    v2.rect(x0w, hd + 10 * IN, 1.0, 2.0, lw="thin", fill="white", hatch="ansi31",
+    v2.rect(x0w, hd + 10 * IN, 1.0, 1.2, lw="thin", fill="white", hatch="ansi31",
             hatch_kw=dict(spacing=0.06, col="g50"))
     _wsec(v2, -0.62, hd + 10.2 * IN, 10.2, 8.0, 0.435, 0.29)
     _pl(v2, -1.0 + 0.25 * IN, hd, -0.04, hd + 0.375 * IN)
     v2.rect(-1.0, hd - 0.5, 1.0, 0.5, lw="hair", dash="hidden")
     v2.rect(-1.0, hd + 0.375 * IN + 0.0, 1.0, 0.04, lw=None)
-    _brk_h(v2, hd + 10 * IN + 2.0, -1.3, 0.3)
-    _ldr(v2, (-0.5, hd + 2.2), (0.6, hd + 2.4), "EXIST. 12\" BRICK / CMU WALL", "r")
-    _ldr(v2, (-0.4, hd + 0.5), (0.6, hd + 1.5), "W10x33 (TO EXIST. CMU WYTHE)", "r")
-    _ldr(v2, (-0.1, hd + 0.15 * IN), (0.6, hd + 0.75), "PL 3/8\" x 11 1/2\" CONT. WELDED TO\nBOTTOM FLANGE (SUPPORTS BRICK);\nDRY-PACK W/ NON-SHRINK GROUT", "r")
-    _ldr(v2, (-0.5, hd - 0.3), (0.6, hd - 0.2), "OPENING HEAD 109'-4\"", "r")
+    _brk_h(v2, hd + 10 * IN + 1.2, -1.3, 0.3)
+    _ldr(v2, (-0.5, hd + 1.6), (0.35, hd + 2.0), "EXIST. 12\" BRICK /\nCMU WALL", "r")
+    _ldr(v2, (-0.4, hd + 0.5), (0.35, hd + 1.55), "W10x33 UNDER\nCMU WYTHE", "r")
+    _ldr(v2, (-0.1, hd + 0.15 * IN), (0.35, hd + 0.6), "PL 3/8\" x 11 1/2\"\nCONT. (BRICK);\nDRY-PACK GROUT", "r")
+    _ldr(v2, (-0.5, hd - 0.3), (0.35, hd - 0.35), "HEAD 109'-4\"", "r")
     notes = [
         "WORK ONLY DURING SUMMER RECESS (JUNE 7 - AUG. 13, 2027). EXISTING ROOF JOISTS BEAR ON THIS WALL: SHORE ROOF FRAMING BOTH SIDES BEFORE CUTTING.",
         "INSTALL NEEDLES THRU WALL ABOVE LINTEL, SAWCUT OPENING, BUILD 16\" GROUTED CMU JAMBS, SET LINTEL 8\" MIN. BEARING EA. END, DRY-PACK; REMOVE SHORES AFTER 72 HRS.",
         "VERIFY EXISTING WALL CONSTRUCTION AND OPENING SIZE IN FIELD; SEE AD101.",
     ]
-    notes_block(sh, cell["x"] + 3.15, cell["y"] + title_h + 2.35, "SEQUENCE / NOTES", notes,
-                cell["w"] - 3.35, size=TXT["tiny"] * 1.1, title_size=TXT["small"] * 1.1)
-    sh.text((cell["x"] + 0.25, cell["y"] + title_h + 2.55), "B. SECTION AT LINTEL - 3/4\" = 1'-0\"",
+    notes_block(sh, cell["x"] + 3.05, cell["y"] + title_h + 2.4, "SEQUENCE / NOTES", notes,
+                cell["w"] - 3.25, size=TXT["tiny"] * 1.15, title_size=TXT["small"] * 1.1)
+    sh.text((cell["x"] + 0.25, cell["y"] + title_h + 2.62), "B. SECTION AT LINTEL - 3/4\" = 1'-0\"",
             size=TXT["small"], font=FONT_B, valign="top", underline=True)
     _dtitle(sh, cell, 12, "NEW OPENING IN EXISTING EAST WALL", "SCALE: AS NOTED")
 
@@ -2792,7 +2807,7 @@ def d302_link_head(sh, cell):
     _ldr(v, (-0.25, hd + 4 * IN), (xl - 1.2, 110.1), "HSS8x8x1/2 HEAD BEAM\nT.O.S. 110'-0\", SPANS\nBETWEEN LINK COLUMNS", "l")
     xr = 1.2
     _ldr(v, (0.85, hd + 0.1), (xr, 111.2), "L7x4x3/8 LLH CONT., WELD TO\nHSS 2\" @ 12\" (BRICK SUPPORT)", "r")
-    _ldr(v, (0.14, hd - 1.0), (xr, 109.0), "SF-3 HEAD (A-312); DEFLECTION\nRECEPTOR 1/2\"", "r")
+    _ldr(v, (0.14, hd - 1.0), (xr, 108.2), "SF-3 HEAD (A-312); DEFLECTION\nRECEPTOR 1/2\"", "r")
     _ldr(v, (0.0, 112.5), (xr, 113.4), "8\" CMU ON HSS, #5 @ 48\"\n+ (1) #5 EA. SIDE OF COL.", "r")
     _lev(v, 3.4, EL_LINK, "LINK ROOF", "r", x_from=1.1)
     _lev(v, 3.4, ptop, "T.O. PARAPET", "r", x_from=1.1)

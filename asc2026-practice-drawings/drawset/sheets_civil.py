@@ -118,7 +118,7 @@ STALL_SEGS, N_STALLS, N_ACC = _stall_lines()
 EX_WALK_A = box(-312, -68, -36, -60)          # drop-off walk along the south face
 EX_WALK_C = box(-66, -151, -60, -68)          # walk from Prairie Ave sidewalk to the south face
 EX_WALK_D = box(-36, 33, 256, 39)             # walk Maple St -> existing E. corridor door (REMOVE)
-EX_WALK_N = box(-262, 120, -256, 175)         # walk to north play field (to remain)
+EX_WALK_N = box(-234, 120, -228, 150)         # walk from north exit to play field (to remain)
 SIDEWALK_PR = box(-FAR, PR["sw_n"][0], MP["sw_w"][1], PR["sw_n"][1])
 SIDEWALK_MP = box(MP["sw_w"][0], PR["sw_n"][0], MP["sw_w"][1], FAR)
 
@@ -576,7 +576,7 @@ def existing_contours(win, step=3.0, mask=None):
     ys = np.arange(win["y0"] - 6, win["y1"] + 6, step)
     X, Y = np.meshgrid(xs, ys)
     Z = E(X.ravel(), Y.ravel()).reshape(X.shape)
-    inb = shapely.contains_xy(EXB.buffer(1.0), X.ravel(), Y.ravel()).reshape(X.shape)
+    inb = shapely.contains_xy(box(-321, -61, -35, 121), X.ravel(), Y.ravel()).reshape(X.shape)
     Z[inb] = np.nan
     out = {}
     lo, hi = int(math.floor(np.nanmin(Z))), int(math.ceil(np.nanmax(Z)))
@@ -1526,6 +1526,7 @@ def draw_c100(sh):
                      remove=(disp == "R"))
         _demo_items(v)
         _limit_of_work(v)
+        _footprint_ref(v)
         _c100_labels(v)
         street_labels(v, x_pr=-200.0, y_mp=200.0)
     ty = title_block_plan(sh, rect, 1, "EXISTING CONDITIONS & SITE DEMOLITION PLAN", SC)
@@ -1548,7 +1549,7 @@ def _c100_labels(v: View):
     # structures with rims / inverts
     st_lab = {
         "EX ST-1": (300.0, 197.0), "EX ST-2": (300.0, 103.0), "EX ST-3": (300.0, -54.0),
-        "EX SAN-3": (100.0, -196.0), "EX SAN-2": (-118.0, -196.0), "EX YI-1": (-60.0, 98.0),
+        "EX SAN-3": (100.0, -196.0), "EX SAN-2": (-118.0, -196.0), "EX YI-1": (-8.0, 128.0),
         "EX YI-2": (104.0, 66.0), "EX CB-2": (-118.0, -112.0),
     }
     for nm, at in st_lab.items():
@@ -1564,7 +1565,7 @@ def _c100_labels(v: View):
     bm = (246.0, PR["boc_n"] + 0.5)
     spot(v, bm[0], bm[1], "BM-1", col="black", marker="dot", dx=-0.04, anchor="r", font=FONT_B)
     # spot elevations (existing ground)
-    for (x, y) in [(-0.95, -0.95), (150.95, -0.95), (150.95, 72.95), (-0.95, 72.95), (75, 36),
+    for (x, y) in [(-0.95, -0.95), (150.95, -0.95), (150.95, 72.95), (-0.95, 72.95), (95, 52),
                    (210, 10), (210, 90), (120, -60), (20, -60), (-20, 60), (60, 105),
                    (230, -120), (-80, 100), (-90, 0), (-90, -60.5)]:
         spot(v, x, y, round(E1(x, y), 2), col=EXC)
@@ -1598,7 +1599,7 @@ def _c100_labels(v: View):
     key_tag(v, (258.5, 68.0), (243.0, 70.0), "D8")
     key_tag(v, (258.5, 36.0), (243.0, 24.0), "D8")
     key_tag(v, (255.0, -153.0), (234.0, -146.0), "D9")
-    key_tag(v, (-36.0, 36.0), (-50.0, 36.0), "D10")
+    key_tag(v, (-36.5, 33.0), (-52.0, 20.0), "D10")
     key_tag(v, (100.0, 0.0), (100.0, -12.0), "D11", arrow="dot")
     key_tag(v, (40.0, 150.0), (40.0, 125.0), "D12", arrow="dot")
     key_tag(v, (152.0, 152.0), (175.0, 165.0), "D12", arrow="dot")
@@ -1613,7 +1614,7 @@ def _c100_labels(v: View):
           FONT_B, "c", "mid", 0, "black", True)
     ptext(p, v.to_paper((PL_E, 205.0)), "PROPERTY LINE / WEST R.O.W. LINE", TY + 0.6, FONT_B,
           "c", "mid", 90, "black", True)
-    plines(p, v.to_paper((72.0, 30.0)), ["**FUTURE ADDITION**", "(FOOTPRINT SHOWN FOR",
+    plines(p, v.to_paper((40.0, 14.0)), ["**FUTURE ADDITION**", "(FOOTPRINT SHOWN FOR",
                                         "REFERENCE ONLY)"], TY + 0.6, FONT, "c", "mid", "black",
            True)
     plines(p, v.to_paper((-200.0, 150.0)), ["NORTH PLAY FIELD (NO WORK)"], SM, FONT, "c", "mid",
@@ -1688,30 +1689,46 @@ def _c100_panels(sh, rect, ty):
           "", "**CIVIL / ARCHITECTURAL DATUM**",
           "ARCH. 100'-0\" = EL. 712.50 (NAVD88) = FFE OF THE",
           "EXISTING SCHOOL AND OF THE ADDITION."]
-    sh.mtext((cx, yy), bm, size=NT, leading=NT * 1.25)
-    # bottom band: notes | keynotes | tree schedule
-    top = ty - 0.5
-    sh.line((sh.x0, top + 0.15), (x1 + 0.15, top + 0.15), lw="thin")
-    h = notes_block(sh, sh.x0 + 0.2, top, "DEMOLITION NOTES", DEMO_NOTES, 8.2)
-    kx = sh.x0 + 8.8
-    sh.text((kx, top), "DEMOLITION KEYNOTES", size=TXT["label"], font=FONT_B, valign="top",
-            underline=True)
-    yy = top - 0.27
-    for k, t in DEMO_KEYNOTES:
-        hex_tag(sh, (kx + 0.15, yy - 0.06), k)
-        hh = sh.mtext((kx + 0.36, yy), t, size=NT, width=7.6, leading=NT * 1.22)
-        yy -= max(hh, 0.14) + 0.06
-    tx = kx + 8.3
+    hb = sh.mtext((cx, yy), bm, size=NT, leading=NT * 1.25)
+    yy -= hb + 0.3
+    sh.line((x1 + 0.15, yy + 0.15), (sh.x1, yy + 0.15), lw="thin")
     rows = []
     for tid, x, y, d, sp, disp in TREES:
         rows.append([tid, sp, f"{d}\"", "REMOVE" if disp == "R" else "PROTECT",
                      "IN FOOTPRINT / WORK AREA" if disp == "R" else
                      ("CITY PARKWAY TREE" if abs(x - 264.5) < 1 or abs(y + 159) < 1 else
                       "TREE PROTECTION FENCE")])
-    table(sh, tx, top, [("TREE", 0.42), ("SPECIES", 1.2), ("DBH", 0.42), ("ACTION", 0.75),
-                        ("REMARKS", 1.75)], rows, row_h=0.148, size=TY + 0.6,
+    nrem = sum(1 for q in TREES if q[5] == "R")
+    rows.append(["", f"TOTAL: {nrem} REMOVED, {len(TREES) - nrem} PROTECTED", "", "", ""])
+    table(sh, cx, yy, [("TREE", 0.42), ("SPECIES", 1.1), ("DBH", 0.4), ("ACTION", 0.7),
+                       ("REMARKS", cw - 2.62)], rows, row_h=0.15, size=TY + 0.6,
           title="EXISTING TREE SCHEDULE", align=["c", "l", "c", "c", "l"])
-
+    # bottom band: notes | keynotes | existing structure table
+    top = ty - 0.62
+    sh.line((sh.x0, top + 0.15), (x1 + 0.15, top + 0.15), lw="thin")
+    notes_block(sh, sh.x0 + 0.2, top, "DEMOLITION NOTES", DEMO_NOTES, 7.9)
+    kx = sh.x0 + 8.5
+    sh.text((kx, top), "DEMOLITION KEYNOTES", size=TXT["label"], font=FONT_B, valign="top",
+            underline=True)
+    yy = top - 0.27
+    for k, t in DEMO_KEYNOTES:
+        hex_tag(sh, (kx + 0.15, yy - 0.06), k)
+        hh = sh.mtext((kx + 0.36, yy), t, size=NT, width=7.3, leading=NT * 1.22)
+        yy -= max(hh, 0.14) + 0.06
+    tx = kx + 8.05
+    rows = []
+    for nm, st in EX_STR.items():
+        if st["kind"] in ("ci",) and nm not in ("EX CI-2", "EX CI-4"):
+            continue
+        inv = ", ".join(f"{d} {z:.2f}" for d, sz, z in st["inv"])
+        kind = {"smh": "STORM MH", "ci": "CURB INLET", "cb": "CATCH BASIN", "yi": "YARD INLET",
+                "sanmh": "SAN. MH"}[st["kind"]]
+        note = "REMOVE" if nm in ("EX YI-1", "EX YI-2") else ("CONNECT" if nm in ("EX ST-2", "EX SAN-3")
+                                                             else ("PLUG" if nm == "EX ST-3" else ""))
+        rows.append([nm, kind, f"{ex_rim(nm):.2f}", inv, note])
+    table(sh, tx, top, [("STR.", 0.68), ("TYPE", 0.8), ("RIM", 0.5), ("INVERTS (DIR. ELEV.)", 1.98),
+                        ("WORK", 0.62)], rows, row_h=0.15, size=TY + 0.5,
+          title="EXISTING STRUCTURES (SURVEY)", align=["l", "l", "c", "l", "c"])
 
 
 # ========================================================================================
@@ -1750,8 +1767,8 @@ def draw_new_building(v: View, fill="g20", label=True, doors=True, lw="xheavy", 
 
 def door_labels(v: View, size=TY + 0.6):
     p = Paper(v.c)
-    lab = {"ST1-B": ((-2.0, 33.0), "r", "EXIT ST1-B"), "ST2-B": ((152.5, 49.5), "l", "EXIT ST2-B"),
-           "100B": ((152.5, 36.0), "l", "ENTRANCE SF-1"), "112": ((36.5, 3.0), "c", "DOOR 112")}
+    lab = {"ST1-B": ((3.5, 25.0), "l", "EXIT ST1-B"), "ST2-B": ((146.5, 46.0), "r", "EXIT ST2-B"),
+           "100B": ((146.5, 36.0), "r", "ENTRANCE SF-1"), "112": ((36.5, 4.5), "c", "DOOR 112")}
     for nm, (at, an, txt) in lab.items():
         ptext(p, v.to_paper(at), txt, size, FONT_B, an, "mid", 0, "black", True)
 
@@ -1953,13 +1970,12 @@ def draw_c200(sh):
 
 def _c200_dims(v: View):
     # building to property lines / existing building
-    ddim(v, (BX1, 60.0), (PL_E, 60.0), 0.0)
+    ddim(v, (BX1, -22.0), (PL_E, -22.0), 0.0)
     ddim(v, (110.0, BY0), (110.0, PL_S), 0.0)
     ddim(v, (-36.0, 60.0), (BX0, 60.0), 0.0)
     # entrance walk / plaza
     ddim(v, (230.0, 31.0), (230.0, 41.0), 0.0)
     ddim(v, (BX1, 26.0), (164.95, 26.0), -4.0)
-    ddim(v, (171.0, 26.0), (171.0, 52.0), 0.0)
     ddim(v, (152.95, 60.0), (164.95, 60.0), 3.5)
     # W-1 / stoop / service walk
     ddim(v, (-11.95, -30.0), (-5.95, -30.0), -0.0)
@@ -2095,7 +2111,7 @@ def _c200_panels(sh, rect, ty):
     table(sh, cx, yy, [("SITE DATA", 2.75), ("AREA", 1.05), ("", 0.8)], rows, row_h=0.16,
           size=TY + 0.7, align=["l", "r", "r"])
     # bottom band
-    top = ty - 0.5
+    top = ty - 0.62
     sh.line((sh.x0, top + 0.15), (x1 + 0.15, top + 0.15), lw="thin")
     notes_block(sh, sh.x0 + 0.2, top, "SITE LAYOUT & PAVING NOTES", C200_NOTES, 8.3)
     kx = sh.x0 + 9.0
@@ -2328,7 +2344,7 @@ def _c300_enlarged(v: View):
                            (120.0, BY1 + o, "l", 0.06), (90.0, BY0 - o, "l", -0.06),
                            (130.0, BY0 - o, "l", -0.06), (BX1 + o, 14.0, "l", 0.0),
                            (BX1 + o, 66.0, "l", 0.0), (-4.0, 46.0, "r", 0.05),
-                           (-4.0, 70.0, "r", 0.0), (-20.0, BY0 + 26.0, "r", 0.0)]:
+                           (-4.0, 70.0, "r", 0.0), (-28.0, 26.0, "l", -0.05)]:
         spot(v, x, y, FG, "FG", size=S, anchor=an, dy=dy)
     spot(v, -36.0 + o, 45.0, round(E1(-36.0, 45.0), 2), "ME", size=S, dy=0.06)
     spot(v, -36.0 + o, 27.0, round(E1(-36.0, 27.0), 2), "ME", size=S, dy=-0.06)
@@ -2355,7 +2371,8 @@ def _c300_enlarged(v: View):
     for x, z in SWALE_HP:
         spot(v, x, SWALE_Y, z, "HP", size=S, anchor="l", dy=0.07, font=FONT_B)
     for (x, y) in [(-18.0, 100.0), (75.0, 100.0), (150.0, 100.0), (60.0, -30.0), (120.0, -30.0),
-                   (20.0, -30.0), (165.0, -20.0), (165.0, 80.0), (-30.0, 0.0)]:
+                   (20.0, -30.0), (165.0, -20.0), (165.0, 80.0), (-30.0, 0.0), (40.0, -55.0),
+                   (100.0, -55.0), (150.0, -50.0), (20.0, -70.0), (70.0, -70.0), (130.0, -72.0)]:
         spot(v, x, y, round(P1(x, y), 2), "", size=S)
     # slope arrows: 5% away from the building for the first 10 ft
     for a, b in [((75.0, BY1 + 1.0), (75.0, BY1 + 9.0)), ((25.0, BY1 + 1.0), (25.0, BY1 + 9.0)),
@@ -2372,7 +2389,8 @@ def _c300_enlarged(v: View):
     slope_arrow(v, (36.5, -2.0), (36.5, -9.5), "1.5%")
     slope_arrow(v, (153.0, 30.0), (162.0, 30.0), "1.0%")
     slope_arrow(v, (166.0, 43.5), (172.0, 43.5) if False else (171.5, 43.5), "1.7%")
-    slope_arrow(v, (-26.0, -57.0), (-16.0, -57.0), "1.7%")
+    slope_arrow(v, (-30.0, -57.0), (-16.0, -57.0),
+                f"{(PAVE_BY_ID['W-2']['z'](-36.0, 0) - PAVE_BY_ID['W-2']['z'](-11.95, 0)) / 24.05 * 100:.1f}%")
     # swale flow
     for a, b in (((40.0, SWALE_Y), (70.0, SWALE_Y)), ((141.0, SWALE_Y), (115.0, SWALE_Y)),
                  ((141.0, SWALE_Y), (165.0, SWALE_Y)), ((40.0, SWALE_Y), (10.0, SWALE_Y))):
@@ -2447,7 +2465,7 @@ SEQUENCE = [
 
 def _section_A(sh, x, y):
     """north side grading section at x = 75 (looking west). (x, y) = lower-left of the frame"""
-    s0, s1, z0, z1 = 64.0, 112.0, 708.0, 713.5
+    s0, s1, z0, z1 = 64.0, 112.0, 709.0, 713.5
     xy = XY(sh.c, x, y, 0.1, 0.5, s0, z0)
     elev_grid(xy, s0, s1, z0, z1, sta=[(BY1, "BLDG"), (BY1 + 10, "10'"), (SWALE_Y, "SWALE"),
                                         (104.0, "LOW")])
@@ -2480,9 +2498,9 @@ def _section_A(sh, x, y):
     a = xy.to_paper((104.0, zl))
     pp.line((a[0], a[1] - 0.25), (a[0], a[1] + 0.35), lw="thin", dash=[6, 2, 1.5, 2])
     ptext(pp, (a[0] + 0.04, a[1] + 0.3), f"ME {zl:.2f}", TY + 0.7, FONT, "l", "mid", 0, "black", True)
-    a = xy.to_paper((100.0, float(P_points([75.0], [100.0])[0])))
-    ptext(pp, (a[0] - 0.3, a[1] + 0.25), "6% BACK SLOPE", TY + 0.7, FONT, "c", "mid", 0, "black", True)
-    a = xy.to_paper((66.0, 709.0))
+    a = xy.to_paper((97.0, float(P_points([75.0], [97.0])[0])))
+    ptext(pp, (a[0] - 0.12, a[1] + 0.12), "6% BACK SLOPE", TY + 0.7, FONT, "r", "mid", 0, "black", True)
+    a = xy.to_paper((66.0, 709.8))
     plines(pp, (a[0], a[1]), ["ADDITION", "(CLASSROOM 103)"], TY + 0.7, FONT, "l", "mid", "black", True)
     a = xy.to_paper((108.0, float(E([75.0], [108.0])[0]) - 0.6))
     plines(pp, a, ["EXISTING", "GRADE"], TY + 0.6, FONT, "c", "mid", EXC, True)
@@ -2492,7 +2510,7 @@ def _section_A(sh, x, y):
 
 def _section_B(sh, x, y):
     """entrance walk section at y = 36 (looking north)"""
-    s0, s1, z0, z1 = 140.0, 272.0, 709.0, 713.5
+    s0, s1, z0, z1 = 140.0, 272.0, 709.5, 713.5
     xy = XY(sh.c, x, y, 0.05, 0.5, s0, z0)
     elev_grid(xy, s0, s1, z0, z1, sta=[(BX1, "BLDG"), (164.95, "PLAZA"), (PL_E, "PL"),
                                         (MP["boc_w"], "B.O.C.")])
@@ -2524,11 +2542,11 @@ def _section_B(sh, x, y):
     xy.line((wi + 0.4, FFE), (wi + 0.4, z1), lw="thin")
     xy.line((BX1 - 0.3, FFE), (BX1 - 0.3, z1), lw="thin")
     pp = Paper(sh.c)
-    a = xy.to_paper((141.0, FFE))
-    ptext(pp, (a[0], a[1] + 0.08), "FFE 712.50", TY + 0.8, FONT_B, "l", "mid", 0, "black", True)
+    a = xy.to_paper((s0, FFE))
+    ptext(pp, (a[0] + 0.03, a[1] + 0.2), "FFE 712.50", TY + 0.8, FONT_B, "l", "mid", 0, "black", True)
     a = xy.to_paper((BX1, z1 - 0.4))
     ptext(pp, (a[0] + 0.04, a[1]), "ENTRANCE SF-1", TY + 0.7, FONT, "l", "mid", 0, "black", True)
-    for (st, z, lab, dy) in [(BX1 + 0.5, STOOP, f"TS {STOOP:.2f}", 0.14),
+    for (st, z, lab, dy) in [(BX1 + 1.5, STOOP, f"TS {STOOP:.2f}", 0.3),
                              (164.95, float(zp(164.95, 36)), f"TS {float(zp(164.95, 36)):.2f}", 0.14),
                              (ENT_X1, ENT_Z1, f"ME {ENT_Z1:.2f}", 0.16)]:
         a = xy.to_paper((st, z))
@@ -2564,6 +2582,52 @@ POLL_ROWS = [
     ["MATERIAL STORAGE", "ON PALLETS, COVERED; NO STORAGE INSIDE TREE PROTECTION"],
     ["TRACKING / DUST", "STABILIZED ENTRANCE; DAILY STREET SWEEPING; WATER FOR DUST"],
 ]
+
+
+def _section_C(sh, x, y):
+    """south side section at x = 36.5 through door 112 and the service apron (looking east)"""
+    s0, s1, z0, z1 = -62.0, 8.0, 710.0, 713.0
+    xs = 36.5
+    xy = XY(sh.c, x + (s1 - s0) * 0.05, y, -0.05, 0.5, s1, z0)   # north at left, south at right
+    # flip: paper x grows toward the south (decreasing y). Use s = -y.
+    xy = XY(sh.c, x, y, 0.05, 0.5, -s1, z0)
+    T = lambda yy: -yy
+    elev_grid(xy, -s1, -s0, z0, z1, sta=[(T(BY0), "BLDG"), (T(-10.95), "APRON"), (T(-26.0), "SWALE"),
+                                         (T(-60.0), "")])
+    ys = np.linspace(BY0, s0, 120)
+    pz = P_points(np.full_like(ys, xs), ys)
+    ez = E(np.full_like(ys, xs), ys)
+    ye = np.linspace(s1, s0, 120)
+    ez2 = E(np.full_like(ye, xs), ye)
+    xy.polyline([(T(a), b) for a, b in zip(ye, ez2)], lw="thin", color=SCR, dash="dashed")
+    xy.polyline([(T(a), b) for a, b in zip(ys, pz) if np.isfinite(b)], lw="heavy")
+    t6 = 0.5
+    zap = PAVE_BY_ID["APRON"]["z"]
+    xy.polygon([(T(BY0), float(zap(xs, BY0))), (T(-10.95), float(zap(xs, -10.95))),
+                (T(-10.95), float(zap(xs, -10.95)) - 1.0), (T(-9.95), float(zap(xs, -10.95)) - 1.0),
+                (T(-9.95), float(zap(xs, -10.95)) - t6), (T(BY0), STOOP - t6)], lw="thin", fill="g20")
+    wi = 0.0 + M.EW_IN
+    xy.polygon([(T(wi), z0), (T(BY0), z0), (T(BY0), FFE), (T(wi), FFE)], lw="thin", fill="white",
+               hatch="ansi31", hatch_kw=dict(spacing=0.035, w="hair"))
+    xy.polygon([(T(s1), FFE - 5 / 12.0), (T(wi), FFE - 5 / 12.0), (T(wi), FFE), (T(s1), FFE)],
+               lw="thin", fill="g20")
+    xy.line((T(BY0) - 0.3, FFE), (T(BY0) - 0.3, z1), lw="thin")
+    pp = Paper(sh.c)
+    a = xy.to_paper((T(s1), FFE))
+    ptext(pp, (a[0] + 0.03, a[1] + 0.2), "FFE 712.50", TY + 0.8, FONT_B, "l", "mid", 0, "black", True)
+    a = xy.to_paper((T(BY0), z1 - 0.3))
+    ptext(pp, (a[0] + 0.05, a[1]), "DOOR 112", TY + 0.7, FONT, "l", "mid", 0, "black", True)
+    a = xy.to_paper((T(-6.0), STOOP))
+    ptext(pp, (a[0], a[1] + 0.2), "6\" APRON 1.5%", TY + 0.7, FONT, "c", "mid", 0, "black", True)
+    zsw = float(P_points([xs], [-26.0])[0])
+    a = xy.to_paper((T(-26.0), zsw))
+    ptext(pp, (a[0], a[1] - 0.13), f"SWALE {zsw:.2f}", TY + 0.7, FONT_B, "c", "mid", 0, "black", True)
+    a = xy.to_paper((T(-17.0), float(P_points([xs], [-17.0])[0])))
+    ptext(pp, (a[0], a[1] + 0.15), "5% / 2%", TY + 0.7, FONT, "c", "mid", 0, "black", True)
+    a = xy.to_paper((T(-48.0), float(E([xs], [-48.0])[0])))
+    ptext(pp, (a[0], a[1] + 0.14), "MATCH EXISTING", TY + 0.6, FONT, "c", "mid", 0, EXC, True)
+    sh.view_title(x, y - 0.42, "C", "GRADING SECTION - SOUTH SIDE AT x = 36.5' (DOOR 112)",
+                  "HORIZ. 1\" = 20', VERT. 1\" = 2'", width=3.9)
 
 
 def _c300_panels(sh, rect, ty, erect, ety):
@@ -2657,16 +2721,40 @@ def _c300_panels(sh, rect, ty, erect, ety):
     table(sh, cx1 + 7.15, by, [("MEASURE", 1.35), ("DETAIL", 0.62), ("INSPECTION", 1.2),
                                ("MAINTENANCE", 2.05)], rows, row_h=0.17, size=TY + 0.8,
           title="ESC INSPECTION & MAINTENANCE", align=["l", "c", "c", "l"])
+    # SWPPP site information + runoff coefficients (within the limit of work)
+    sy = by - 1.95
+    imp_ex = unary_union([EX_WALK_D, EX_PAVE, SIDEWALK_MP, SIDEWALK_PR,
+                          box(MP["eop_w"], -FAR, FAR, FAR), box(-FAR, -FAR, FAR, PR["eop_n"])]
+                         ).intersection(LOW_ALL).area
+    imp_pr = unary_union([NEW_BLDG, pave_union(), SIDEWALK_MP, SIDEWALK_PR, EX_PAVE,
+                          box(MP["eop_w"], -FAR, FAR, FAR), box(-FAR, -FAR, FAR, PR["eop_n"])]
+                         ).intersection(LOW_ALL).area
+    A = LOW_ALL.area
+    c_ex = (0.95 * imp_ex + 0.30 * (A - imp_ex)) / A
+    c_pr = (0.95 * imp_pr + 0.30 * (A - imp_pr)) / A
+    rows = [["PROJECT / LOCATION", "CEDAR PRAIRIE ES ADDITION, 1400 PRAIRIE AVE., CEDAR PRAIRIE, IL"],
+            ["NATURE OF ACTIVITY", "2-STORY SCHOOL ADDITION, WALKS, UTILITY SERVICES, GRADING"],
+            ["TOTAL SITE / DISTURBED", f"{PROPERTY.area / 43560:.2f} AC / {DISTURBED_AC:.2f} AC"],
+            ["IMPERVIOUS IN LOW (EX. / PROP.)", f"{imp_ex:,.0f} SF / {imp_pr:,.0f} SF"],
+            ["RUNOFF COEFF. C (EX. / PROP.)", f"{c_ex:.2f} / {c_pr:.2f}  (C = 0.95 IMPERV., 0.30 LAWN)"],
+            ["RECEIVING SYSTEM", "MAPLE ST. STORM SEWER (MS4) TO CEDAR CREEK (FICTIONAL)"],
+            ["PERMIT / INSPECTIONS", "IEPA ILR10; QUALIFIED INSPECTOR WEEKLY + AFTER 0.5\" RAIN"],
+            ["SWPPP CONTACTS", "OWNER: DISTRICT FACILITIES; CONTRACTOR: SUPERINTENDENT"]]
+    table(sh, cx1, sy, [("SWPPP SITE INFORMATION", 2.3), ("", 5.0)], rows, row_h=0.17,
+          size=TY + 0.9, align=["l", "l"])
     # grading sections under the main plan
-    bt = ty - 0.55
+    bt = ty - 0.67
     sh.line((sh.x0, bt + 0.2), (x1 + 0.15, bt + 0.2), lw="thin")
-    _section_A(sh, sh.x0 + 0.65, bt - 3.0)
-    _section_B(sh, sh.x0 + 6.9, bt - 3.0)
-    notes_block(sh, sh.x0 + 0.3, bt - 4.0, "SECTION NOTES", [
-        "SECTIONS ARE SCHEMATIC WITH 5x (A) AND 10x (B) VERTICAL EXAGGERATION. EXISTING GRADE "
-        "DASHED, FINISHED GRADE HEAVY.",
-        "SEE ENLARGED GRADING PLAN 2 FOR SPOT GRADES AND C-500 FOR PAVEMENT SECTIONS."],
-        x1 - sh.x0 - 0.6, size=NT)
+    _section_A(sh, sh.x0 + 0.65, bt - 2.6)
+    _section_B(sh, sh.x0 + 6.9, bt - 2.6)
+    _section_C(sh, sh.x0 + 0.65, sh.y0 + 0.95)
+    notes_block(sh, sh.x0 + 5.4, sh.y0 + 2.45, "SECTION NOTES", [
+        "SECTIONS ARE SCHEMATIC WITH 5x (A) AND 10x (B, C) VERTICAL EXAGGERATION. EXISTING GRADE "
+        "DASHED (SCREENED), FINISHED GRADE HEAVY.",
+        "SEE ENLARGED GRADING PLAN 2 FOR SPOT GRADES AND C-500 FOR PAVEMENT / STOOP SECTIONS.",
+        "WHERE THE NEW GRADE IS BELOW EXISTING (NORTH AND SOUTH SIDES) THE CUT FORMS A GRASS "
+        "SWALE THAT CARRIES RUNOFF AROUND THE BUILDING; DO NOT FILL SWALES DURING RESTORATION."],
+        x1 - sh.x0 - 5.6, size=NT)
 
 
 # ========================================================================================
@@ -3136,7 +3224,7 @@ def draw_c400(sh):
                align=["c", "c", "c", "c", "l", "r", "r", "r", "r"])
     notes_block(sh, x1 + 6.6, py_, "UTILITY NOTES", UTIL_NOTES, sh.x1 - x1 - 6.8, size=NT)
     # bottom-left under the plan: water service fittings schedule
-    bt = ty - 0.55
+    bt = ty - 0.67
     sh.line((sh.x0, bt + 0.2), (x1 + 0.15, bt + 0.2), lw="thin")
     rows = [["1", "8\" x 6\" STAINLESS TAPPING SLEEVE, 6\" RW GATE VALVE (AWWA C509) & BOX", "1 EA"],
             ["2", "6\" DIP CL. 52 FIRE SERVICE, POLY-WRAPPED, RESTRAINED JOINTS", f"{fire_len():.0f} LF"],
@@ -3168,12 +3256,19 @@ DS = 6.2          # detail label size (pt)
 IN_ = 1 / 12.0
 
 
+_CELL = {}
+
+
 def _cv(sh, cell, scale, ext, dx=0.0, dy=0.0):
     """view fitting model extents ext=(x0, y0, x1, y1) centered in the cell above the title"""
+    _CELL.clear()
+    _CELL.update(cell)
     x0, y0, x1, y1 = ext
     w, h = (x1 - x0) * scale, (y1 - y0) * scale
+    if w > cell["w"] - 0.2 or h > cell["h"] - 0.8:
+        print(f"WARNING detail extents too big: {w:.2f} x {h:.2f} in cell {cell['w']:.2f} x {cell['h']:.2f}")
     cx = cell["x"] + cell["w"] / 2 + dx
-    cy = cell["y"] + 0.7 + (cell["h"] - 0.75) / 2 + dy
+    cy = cell["y"] + 0.72 + (cell["h"] - 0.72) / 2 + dy
     return sh.view(cx - w / 2 - x0 * scale, cy - h / 2 - y0 * scale, scale)
 
 
@@ -3181,8 +3276,25 @@ def _dt(sh, cell, n, title, scale):
     sh.view_title(cell["x"] + 0.18, cell["y"] + 0.42, n, title, scale, width=cell["w"] - 0.8)
 
 
-def dl(v, target, at, lines, side=None, size=DS, arrow="arrow"):
+def dl(v, target, at, lines, side="r", size=DS, arrow="arrow"):
+    """detail label; warns when the text leaves the current cell"""
     callout(v, target, at, lines, size, side=side, arrow=arrow)
+    if _CELL:
+        if isinstance(lines, str):
+            lines = [lines]
+        ax, ay = v.to_paper(at)
+        w = max(stringWidth(q, FONT, size) for q in lines) / PT
+        x0 = ax + 0.1 if side == "r" else ax - 0.1 - w
+        x1 = x0 + w
+        h = len(lines) * size * 1.18 / PT
+        c = _CELL
+        if x0 < c["x"] + 0.05 or x1 > c["x"] + c["w"] - 0.05 or ay - h / 2 < c["y"] + 0.62 or \
+                ay + h / 2 > c["y"] + c["h"] - 0.05:
+            print("WARNING label outside cell:", lines[0])
+
+
+def note_in_cell(sh, cell, lines, size=DS - 0.6, y=None):
+    sh.mtext((cell["x"] + 0.25, y if y is not None else cell["y"] + 1.25), lines, size=size)
 
 
 def _earth(v, pts):
@@ -3208,176 +3320,158 @@ def _grass(v, x0, x1, y, col="black"):
 
 
 def det_sidewalk(sh, c):
-    v = _cv(sh, c, 0.75, (-3.6, -3.4, 7.6, 2.4), dy=0.25)
+    v = _cv(sh, c, 0.75, (-1.3, -4.6, 6.3, 3.9), dy=0.2)
     W, t, b = 5.0, 5 * IN_, 4 * IN_
-    _earth(v, [(-1.5, -t - b), (W + 1.5, -t - b), (W + 1.5, -1.6), (-1.5, -1.6)])
-    _gravel(v, [(-0.5, -t - b), (W + 0.5, -t - b), (W + 0.5, -t), (-0.5, -t)])
     sl = 0.015 * W
+    gl, gr = sl - 0.04, -0.04
+    _earth(v, [(-1.0, gl - 0.12), (0, gl), (0, -t - b), (W, -t - b), (W, gr), (6.0, gr - 0.05),
+               (6.0, -1.6), (-1.0, -1.6)])
+    _gravel(v, [(-0.5, -t - b), (W + 0.5, -t - b), (W + 0.5, -t - 0.06), (W, -t), (0, -t + sl),
+                (-0.5, -t + sl - 0.03)])
     _concrete(v, [(0, -t + sl), (W, -t), (W, 0.0), (0, sl)])
-    v.polygon([(-1.5, -0.04 + sl - 0.25), (-0.0, sl - 0.04), (0, -t - b + 0.02), (-0.5, -t - b),
-               (-1.5, -t - b)], lw=None, fill="white")
-    v.polygon([(W, -0.04), (W + 1.5, -0.04 - 0.08), (W + 1.5, -t - b), (W + 0.5, -t - b),
-               (W, -t)], lw=None, fill="white")
-    v.polygon([(-1.5, sl - 0.29), (0, sl - 0.04), (0, -t + sl), (-0.5, -t - b), (-1.5, -t - b)],
-              lw=None, hatch="earth", hatch_kw=dict(scale=0.9, w="hair"))
-    v.polygon([(W, -0.04), (W + 1.5, -0.12), (W + 1.5, -t - b), (W + 0.5, -t - b), (W, -t)],
-              lw=None, hatch="earth", hatch_kw=dict(scale=0.9, w="hair"))
-    _grass(v, -1.5, 0.0, sl - 0.04)
-    _grass(v, W, W + 1.5, -0.04)
-    break_line(v, (-1.5, -1.6), (-1.5, sl))
-    break_line(v, (W + 1.5, -1.6), (W + 1.5, 0.1))
-    v.dim((0, sl), (W, 0.0), 0.9, text="5'-0\" MIN. (AS SHOWN)")
-    v.dim((W, 0.0), (W, -t), -0.0, text="")
-    dl(v, (1.5, sl * 0.7), (-3.4, 1.6), ["5\" PCC SIDEWALK, 4,000 PSI,", "AIR-ENTRAINED, BROOM FINISH"], "r")
-    dl(v, (3.5, -t - b / 2), (-3.4, -2.3), ["4\" CA-6 AGGREGATE BASE,", "COMPACTED TO 95% STD. PROCTOR"], "r")
-    dl(v, (2.0, -1.2), (-3.4, -3.0), ["COMPACTED SUBGRADE"], "r")
-    dl(v, (W - 0.03, -0.02), (5.6, 1.4), ["1/4\" R TOOLED EDGE"], "r")
-    dl(v, (W + 0.8, -0.08), (5.9, -2.0), ["SOD ON 6\" TOPSOIL,", "1/2\" BELOW WALK"], "r")
-    slope_arrow(v, (1.2, sl * 0.76 + 0.22), (3.8, sl * 0.24 + 0.22), "1.5% (2% MAX.)", size=DS - 0.4)
-    # joint plan (inset)
-    pv = sh.view(c["x"] + c["w"] - 2.25, c["y"] + 1.05, 1 / 16.0)
-    pv.rect(0, 0, 25, 5, lw="thin")
-    for x in (5, 10, 15, 20):
+    _grass(v, -1.0, 0.0, gl)
+    _grass(v, W, 6.0, gr)
+    break_line(v, (-1.0, -1.6), (-1.0, gl))
+    break_line(v, (6.0, -1.6), (6.0, gr))
+    v.dim((0, sl + 0.0), (W, sl), 1.1, text="5'-0\" MIN. (WIDTH PER C-200)")
+    v.dim((W, 0.0), (W, -t), -0.55, text="5\"")
+    v.dim((W + 0.5, -t - 0.06), (W + 0.5, -t - b), -0.55, text="4\"")
+    slope_arrow(v, (1.0, sl + 0.3), (4.0, 0.33), "1.5% (2% MAX.)", size=DS - 0.4)
+    dl(v, (1.2, sl * 0.8), (-1.2, 3.3), ["5\" PCC SIDEWALK, 4,000 PSI, AIR-ENTRAINED,", "LIGHT BROOM FINISH"])
+    dl(v, (W - 0.05, -0.03), (2.6, 2.3), ["1/4\" R TOOLED EDGE (TYP.)"])
+    dl(v, (3.0, -t - b / 2), (-1.2, -2.3), ["4\" CA-6 AGGREGATE BASE, 95% STD. PROCTOR"])
+    dl(v, (1.6, -1.3), (-1.2, -2.9), ["COMPACTED SUBGRADE"])
+    dl(v, (5.5, gr - 0.04), (1.4, -3.5), ["SOD ON 6\" TOPSOIL, 1/2\" BELOW WALK"])
+    x0, y0 = c["x"] + 3.55, c["y"] + 0.98
+    pv = sh.view(x0, y0, 1 / 16.0)
+    pv.rect(0, 0, 30, 5, lw="thin")
+    for x in (5, 10, 15, 20, 25):
         pv.line((x, 0), (x, 5), lw="fine", dash="dashed")
-    pv.line((25, 0), (25, 5), lw="med")
-    Paper(sh.c).text((c["x"] + c["w"] - 2.25, c["y"] + 1.62), "JOINT PLAN (NTS)", size=DS - 0.6,
-                     font=FONT_B)
-    Paper(sh.c).mtext((c["x"] + c["w"] - 2.25, c["y"] + 0.98),
-                      ["TOOLED CONTRACTION JOINT 1/4 DEPTH @ 5'-0\" O.C.",
-                       "1/2\" EXP. JOINT @ 50' MAX. & AT STRUCTURES"], size=DS - 1.0)
+    pv.line((30, 0), (30, 5), lw="med")
+    sh.text((x0, y0 + 0.42), "JOINT PLAN (NTS)", size=DS - 0.6, font=FONT_B)
+    sh.mtext((c["x"] + 0.3, c["y"] + 1.35), ["TOOLED CONTRACTION JOINTS, 1/4 SLAB DEPTH,",
+                                             "@ 5'-0\" O.C. (= WALK WIDTH). 1/2\" PREMOLDED",
+                                             "EXPANSION JOINT @ 50' MAX. & AT BUILDING,",
+                                             "STOOPS, CURBS AND EXISTING WALKS."], size=DS - 0.6)
     _dt(sh, c, 1, "PCC SIDEWALK", '3/4" = 1\'-0"')
 
 
 def det_curb(sh, c):
-    v = _cv(sh, c, 1.5, (-1.9, -1.15, 2.2, 1.85), dx=0.1, dy=0.2)
-    # inches -> feet; x = 0 at back of curb, gutter lip at x = 1.5
+    v = _cv(sh, c, 1.5, (-1.05, -2.15, 2.65, 1.95), dy=0.1)
     I = IN_
     pts = [(0, -5 * I), (0, 13 * I), (5.5 * I, 13 * I), (6 * I, 12.5 * I), (7 * I, 7 * I),
            (18 * I, 8 * I), (18 * I, 0), (6 * I, 0), (6 * I, -5 * I)]
-    _earth(v, [(-1.2, -1.0), (2.6, -1.0), (2.6, -4 * I - 0.0), (-1.2, -4 * I)])
-    _gravel(v, [(-0.5, -9 * I), (2.6, -9 * I), (2.6, -0.0), (18 * I, 0), (6 * I, 0), (6 * I, -5 * I),
+    _earth(v, [(-0.8, -9 * I), (2.4, -9 * I), (2.4, -1.15), (-0.8, -1.15)])
+    _gravel(v, [(-0.5, -9 * I), (2.4, -9 * I), (2.4, -0.0), (18 * I, 0), (6 * I, 0), (6 * I, -5 * I),
                 (0, -5 * I), (-0.5, -5 * I)])
     _concrete(v, pts)
-    # HMA pavement beyond lip
-    v.polygon([(18 * I, 8 * I), (2.6, 8.3 * I), (2.6, 0), (18 * I, 0)], lw="thin", fill="g20")
-    v.line((18 * I, 6 * I), (2.6, 6.2 * I), lw="fine")
-    # parkway soil behind the curb
-    v.polygon([(-1.2, 13 * I - 0.02), (0, 13 * I), (0, -5 * I), (-1.2, -5 * I)], lw=None,
-              hatch="earth", hatch_kw=dict(scale=0.9, w="hair"))
-    _grass(v, -1.2, 0.0, 13 * I - 0.01)
-    break_line(v, (2.6, -0.85), (2.6, 0.75))
-    v.dim((0, 13 * I), (6 * I, 13 * I), 0.35, text="6\"")
-    v.dim((6 * I, 13 * I), (18 * I, 13 * I), 0.35, text="1'-0\"")
-    v.dim((0, 13 * I), (18 * I, 13 * I), 0.62, text="1'-6\"")
-    v.dim((18 * I, 0), (18 * I, 8 * I), -0.25, text="8\"")
-    v.dim((0, -5 * I), (0, 13 * I), 0.55, text="1'-6\"")
-    v.dim((7 * I, 7 * I), (7 * I, 13 * I), -0.0, text="")
-    dl(v, (6.6 * I, 10 * I), (-1.85, 1.35), ["6\" CURB FACE, 1\" BATTER"], "r")
-    dl(v, (12 * I, 4 * I), (-1.85, -0.3), ["PCC CURB & GUTTER,", "4,000 PSI, AIR-ENTR."], "r")
-    dl(v, (1.8, -7 * I), (0.9, -1.15), ["4\" CA-6 AGG. BASE (MIN. 6\"", "BEYOND BACK OF CURB)"], "r")
-    dl(v, (2.3, 7.1 * I), (1.6, 1.55), ["MATCH EX. HMA", "PAVEMENT"], "r")
-    dl(v, (-0.6, 13 * I), (-1.85, 0.85), ["TOPSOIL & SOD"], "r")
-    Paper(sh.c).mtext((c["x"] + 0.25, c["y"] + 1.25),
-                      ["CONTRACTION JOINTS @ 15' O.C. MAX.; 1\" EXPANSION JOINTS AT RADIUS",
-                       "POINTS, STRUCTURES AND 100' MAX. MATCH EXISTING CURB AND",
-                       "GUTTER LINE & GRADE. PER IDOT HIGHWAY STANDARD 606001."], size=DS - 0.6)
+    v.polygon([(18 * I, 8 * I), (2.4, 8.3 * I), (2.4, 0), (18 * I, 0)], lw="thin", fill="g20")
+    v.line((18 * I, 6 * I), (2.4, 6.2 * I), lw="fine")
+    v.polygon([(-0.8, 13 * I - 0.02), (0, 13 * I), (0, -5 * I), (-0.5, -5 * I), (-0.5, -9 * I),
+               (-0.8, -9 * I)], lw=None, hatch="earth", hatch_kw=dict(scale=0.9, w="hair"))
+    _grass(v, -0.8, 0.0, 13 * I - 0.01)
+    break_line(v, (2.4, -1.15), (2.4, 0.75))
+    break_line(v, (-0.8, -1.15), (-0.8, 1.05))
+    v.dim((0, 13 * I), (6 * I, 13 * I), 0.3, text="6\"")
+    v.dim((6 * I, 13 * I), (18 * I, 13 * I), 0.3, text="1'-0\"")
+    v.dim((0, 13 * I), (18 * I, 13 * I), 0.55, text="1'-6\"")
+    v.dim((18 * I, 0), (18 * I, 8 * I), -0.22, text="8\"")
+    v.dim((0, -5 * I), (0, 13 * I), 0.45, text="1'-6\"")
+    v.dim((7 * I, 7 * I), (7 * I, 13 * I), -0.12, text="6\"")
+    dl(v, (6.6 * I, 10 * I), (0.95, 1.75), ["CURB FACE, 1\" BATTER, 1/2\" R"])
+    dl(v, (12 * I, 4 * I), (1.25, -1.5), ["PCC CURB & GUTTER, 4,000 PSI,", "AIR-ENTRAINED"])
+    dl(v, (1.9, -6 * I), (0.5, -1.95), ["4\" CA-6 BASE, 6\" BEYOND BACK OF CURB"])
+    dl(v, (2.2, 7.2 * I), (1.7, 1.35), ["MATCH EXIST.", "HMA PAVEMENT"])
+    dl(v, (-0.4, 13 * I), (-1.0, 1.75), ["TOPSOIL & SOD"])
+    note_in_cell(sh, c, ["CONTRACTION JOINTS @ 15' O.C. MAX.; 1\" EXPANSION JOINTS AT",
+                         "RADIUS POINTS, STRUCTURES & 100' MAX. MATCH EXISTING LINE",
+                         "AND GRADE. PER IDOT HIGHWAY STANDARD 606001."])
     _dt(sh, c, 2, "COMBINATION CONC. CURB & GUTTER B-6.12", '1 1/2" = 1\'-0"')
 
 
 def det_patch(sh, c):
-    v = _cv(sh, c, 0.5, (-5.6, -5.2, 5.6, 2.0), dy=0.25)
+    v = _cv(sh, c, 0.5, (-5.6, -6.6, 5.6, 4.4), dy=0.1)
     s1, b1, t = 2 / 12, 3 / 12, 10 / 12
     T = s1 + b1 + t
     hw = 1.5
     sc_ = hw + 1.0
-    # existing pavement both sides
     for sg in (-1, 1):
-        x0, x1 = sg * sc_, sg * 4.5
-        a, b = min(x0, x1), max(x0, x1)
+        a, b = sorted((sg * sc_, sg * 4.5))
         v.polygon([(a, 0), (b, 0), (b, -s1 - b1), (a, -s1 - b1)], lw="thin", fill="g40")
-        v.polygon([(a, -s1 - b1), (b, -s1 - b1), (b, -T - 0.2), (a, -T - 0.2)], lw="thin",
+        v.polygon([(a, -s1 - b1), (b, -s1 - b1), (b, -T - 0.3), (a, -T - 0.3)], lw="thin",
                   fill="white", hatch="gravel", hatch_kw=dict(scale=0.7))
-        _earth(v, [(a, -T - 0.2), (b, -T - 0.2), (b, -5.0), (a, -5.0)])
-    # patch
+        _earth(v, [(a, -T - 0.3), (b, -T - 0.3), (b, -4.6), (a, -4.6)])
     v.polygon([(-sc_, 0), (sc_, 0), (sc_, -s1), (-sc_, -s1)], lw="thin", fill="g40")
     v.polygon([(-sc_, -s1), (sc_, -s1), (sc_, -s1 - b1), (-sc_, -s1 - b1)], lw="thin", fill="g20")
     _concrete(v, [(-sc_, -s1 - b1), (sc_, -s1 - b1), (sc_, -T), (-sc_, -T)], lw="thin")
-    # trench backfill
-    v.polygon([(-hw, -T), (hw, -T), (hw, -5.0), (-hw, -5.0)], lw="thin", fill="white",
-              hatch="gravel", hatch_kw=dict(scale=0.7))
-    v.polygon([(-sc_, -T), (-hw, -T), (-hw, -T - 0.2), (-sc_, -T - 0.2)], lw=None, fill="white",
-              hatch="gravel", hatch_kw=dict(scale=0.7))
-    v.polygon([(hw, -T), (sc_, -T), (sc_, -T - 0.2), (hw, -T - 0.2)], lw=None, fill="white",
-              hatch="gravel", hatch_kw=dict(scale=0.7))
+    v.polygon([(-sc_, -T), (sc_, -T), (sc_, -T - 0.3), (hw, -T - 0.3), (hw, -4.6), (-hw, -4.6),
+               (-hw, -T - 0.3), (-sc_, -T - 0.3)], lw="thin", fill="white", hatch="gravel",
+              hatch_kw=dict(scale=0.7))
     for x in (-sc_, sc_):
-        v.line((x, 0.25), (x, -T), lw="med")
-    break_line(v, (-4.5, -5.0), (4.5, -5.0))
+        v.line((x, 0.3), (x, -T), lw="med")
+    break_line(v, (-4.5, -4.6), (4.5, -4.6))
     v.dim((-sc_, 0), (-hw, 0), 0.9, text="1'-0\"")
-    v.dim((-hw, 0), (hw, 0), 0.9, text="TRENCH WIDTH")
+    v.dim((-hw, 0), (hw, 0), 0.9, text="TRENCH")
     v.dim((hw, 0), (sc_, 0), 0.9, text="1'-0\"")
-    dl(v, (-1.0, -s1 / 2), (-5.5, 1.55), ["2\" HMA SURFACE COURSE, MIX \"D\" N50"], "r")
-    dl(v, (-0.4, -s1 - b1 / 2), (-5.5, -0.8), ["3\" HMA BINDER COURSE IL-19.0 N50"], "r")
-    dl(v, (0.6, -s1 - b1 - t / 2), (-5.5, -1.5), ["10\" PCC BASE COURSE (HIGH EARLY)"], "r")
-    dl(v, (0.5, -3.2), (-5.5, -3.6), ["CA-6 TRENCH BACKFILL, 8\" LIFTS,", "95% STD. PROCTOR"], "r")
-    dl(v, (sc_, 0.15), (3.0, 1.6), ["SAWCUT FULL DEPTH;", "TACK COAT & SEAL EDGES"], "r")
-    dl(v, (3.6, -0.2), (3.3, -2.4), ["EXISTING", "PAVEMENT"], "r")
+    dl(v, (-1.2, -s1 / 2), (-5.5, 3.8), ["2\" HMA SURFACE COURSE, MIX \"D\" N50"])
+    dl(v, (-0.6, -s1 - b1 / 2), (-5.5, 3.1), ["3\" HMA BINDER COURSE, IL-19.0 N50"])
+    dl(v, (0.4, 0.1), (0.8, 2.5), ["SAWCUT FULL DEPTH, TACK", "COAT, SEAL EDGES W/ SEALANT"])
+    dl(v, (0.6, -s1 - b1 - t / 2), (-5.5, -5.4), ["10\" PCC BASE COURSE (HIGH EARLY) OR 12\" HMA BINDER"])
+    dl(v, (0.5, -3.0), (-5.5, -6.1), ["CA-6 TRENCH BACKFILL, 8\" LIFTS, 95% STD. PROCTOR"])
+    dl(v, (3.8, -0.15), (2.9, -2.3), ["EXISTING", "PAVEMENT"])
     _dt(sh, c, 3, "HMA PAVEMENT PATCH (STREET)", '1/2" = 1\'-0"')
 
 
 def det_stoop(sh, c):
-    v = _cv(sh, c, 0.75, (-2.6, -4.0, 6.6, 2.6), dy=0.2)
+    v = _cv(sh, c, 0.5, (-3.4, -6.2, 7.8, 5.0), dy=0.05)
     I = IN_
     L = 5.0
-    top_w = -0.5 * I                 # top of stoop at the wall (relative to FFE = 0)
+    top_w = -0.5 * I
     top_e = top_w - 0.01 * L
     t = 6 * I
-    # foundation wall + slab-on-grade inside (x < 0)
     v.polygon([(-1.0, -4.0), (0.0, -4.0), (0.0, -8 * I), (-0.33, -8 * I), (-0.33, 0.0),
                (-1.0, 0.0)], lw="med", fill="white", hatch="concrete", hatch_kw=dict(scale=0.9))
     v.polygon([(-2.5, 0.0), (-1.0, 0.0), (-1.0, -5 * I), (-2.5, -5 * I)], lw="thin", fill="white",
               hatch="concrete", hatch_kw=dict(scale=0.9))
-    v.polygon([(-0.33, 0.0), (0.0, 0.0), (0.0, 1.9), (-0.33, 1.9)], lw="thin", fill="g20")
-    v.line((-1.0, 0.0), (-1.0, 1.9), lw="thin")
+    v.polygon([(-0.33, 0.0), (0.0, 0.0), (0.0, 2.2), (-0.33, 2.2)], lw="thin", fill="g20")
+    v.line((-1.0, 0.0), (-1.0, 2.2), lw="thin")
     v.rect(-0.95, 0.0, 0.62, 0.06, lw="thin", fill="g40")
-    _earth(v, [(0.0, -4.0), (6.4, -4.0), (6.4, top_e - 2.0), (0.0, top_e - 2.0)])
+    _earth(v, [(0.0, -4.0), (6.4, -4.0), (6.4, top_e - 0.7), (L, top_e - 0.63), (L, top_e - 1.0),
+               (L - 1.0, top_e - 1.0), (L - 1.0, top_e - t - 0.5), (0.0, top_w - t - 0.5)])
     _gravel(v, [(0.0, top_w - t - 0.5), (L - 1.0, top_e - t - 0.5), (L - 1.0, top_e - t),
                 (0.0, top_w - t)])
-    slab = [(0.04, top_w), (L, top_e), (L, top_e - 1.0), (L - 1.0, top_e - 1.0), (L - 1.0, top_e - t),
-            (0.04, top_w - t)]
-    _concrete(v, slab)
-    v.line((0.02, top_w + 0.02), (0.02, top_w - t), lw="thin")
-    for k in range(5):
-        x = 0.4 + k * 1.0
-        if x < L - 0.2:
-            v.circle((x, top_w - t / 2 - 0.01 * x), 0.04, lw=None, fill="black")
-    v.line((-0.6, top_w - t / 2 + 0.03), (1.6, top_w - t / 2 - 0.0), lw="thin")
+    _concrete(v, [(0.04, top_w), (L, top_e), (L, top_e - 1.0), (L - 1.0, top_e - 1.0),
+                  (L - 1.0, top_e - t), (0.04, top_w - t)])
+    for k in range(4):
+        x = 0.5 + k * 1.0
+        v.circle((x, top_w - t / 2 - 0.01 * x), 0.05, lw=None, fill="black")
+    for x in (L - 0.75, L - 0.25):
+        v.circle((x, top_e - 0.85), 0.05, lw=None, fill="black")
+    v.line((-0.6, top_w - t / 2 + 0.02), (1.6, top_w - t / 2 - 0.0), lw="thin")
     _grass(v, L, 6.4, top_e - 0.63)
-    v.polygon([(L, top_e - 0.63), (6.4, top_e - 0.7), (6.4, top_e - 2.0), (L, top_e - 2.0)],
-              lw=None, hatch="earth", hatch_kw=dict(scale=0.9, w="hair"))
     break_line(v, (-2.5, -4.0), (6.4, -4.0))
-    v.dim((0.0, top_w), (L, top_e), 1.2, text="5'-0\" (STOOP DEPTH)")
-    v.dim((L, top_e), (L, top_e - 1.0), -0.6, text="1'-0\"")
-    v.dim((L - 1.0, top_e - 1.0), (L, top_e - 1.0), -0.35, text="1'-0\"")
-    dl(v, (2.5, top_w - 0.12), (1.2, 2.3), ["6\" PCC STOOP, #4 @ 12\" E.W. CENTERED;", "TOP 1/2\" BELOW FFE (712.46),",
-                                           "1% SLOPE AWAY FROM DOOR"], "r")
-    dl(v, (0.6, top_w - t / 2 + 0.02), (-2.5, -1.3), ["#4 x 24\" DOWELS @ 12\" O.C.,", "EPOXY 6\" INTO FDN. WALL"], "r")
-    dl(v, (0.02, top_w - 0.25), (-2.5, -0.55), ["1/2\" ISOLATION JT. & SEALANT"], "r")
-    dl(v, (2.0, top_w - t - 0.3), (2.2, -2.7), ["6\" CA-6 BASE, 95% COMPACTION"], "r")
-    dl(v, (4.6, top_e - 0.8), (5.0, -3.4), ["THICKENED EDGE", "(2) #4 CONT."], "r")
-    dl(v, (-0.6, -2.5), (-2.5, -3.5), ["FOUNDATION WALL (S-301)"], "r")
-    dl(v, (-0.6, 0.03), (-2.5, 1.4), ["THRESHOLD / FFE 712.50", "(SEE A-501, A-701)"], "r")
-    _dt(sh, c, 4, "CONCRETE STOOP WITH THICKENED EDGE", '3/4" = 1\'-0"')
+    v.dim((0.0, top_w), (L, top_e), 1.4, text="5'-0\" STOOP DEPTH")
+    v.dim((L, top_e), (L, top_e - 1.0), -0.9, text="1'-0\"")
+    v.dim((L - 1.0, top_e - 1.0), (L, top_e - 1.0), -0.5, text="1'-0\"")
+    v.dim((0.04, top_w), (0.04, top_w - t), -0.0, text="")
+    dl(v, (2.6, top_w - 0.1), (0.3, 3.9), ["6\" PCC STOOP W/ #4 @ 12\" E.W. CENTERED,",
+                                           "TOP 1/2\" BELOW FFE (712.46), 1% SLOPE AWAY"])
+    dl(v, (-0.6, 0.03), (-3.3, 2.9), ["THRESHOLD / FFE 712.50", "(A-501 / A-701)"])
+    dl(v, (0.02, top_w - 0.2), (-3.3, 1.5), ["1/2\" ISOLATION JOINT", "& SEALANT"])
+    dl(v, (0.8, top_w - t / 2 + 0.01), (-3.3, -1.4), ["#4 x 24\" DOWELS @ 12\"", "O.C., EPOXY 6\" INTO", "FOUNDATION WALL"])
+    dl(v, (-0.6, -3.0), (-3.3, -4.6), ["FOUNDATION WALL", "(SEE S-301)"])
+    dl(v, (2.0, top_w - t - 0.3), (1.0, -5.4), ["6\" CA-6 BASE, 95% COMPACTION"])
+    dl(v, (L - 0.5, top_e - 0.85), (3.2, -2.6), ["THICKENED EDGE", "W/ (2) #4 CONT."])
+    _dt(sh, c, 4, "CONCRETE STOOP WITH THICKENED EDGE", '1/2" = 1\'-0"')
 
 
 def det_ramp(sh, c):
-    v = _cv(sh, c, 0.25, (-8.5, -4.5, 14.5, 15.0), dy=0.9)
-    # curb & gutter along y = 0 (gutter y -1.5..0); ramp x 0..6, run y 0..6; landing y 6..10
+    v = _cv(sh, c, 0.25, (-8.6, -8.0, 14.0, 15.0), dy=0.25)
     v.rect(-8.0, -2.0, 22.0, 0.5, lw="thin")
     v.line((-8.0, -1.5), (14.0, -1.5), lw="thin")
-    v.line((-8.0, 0.0), (-5.0, 0.0), lw="thin")
-    v.line((11.0, 0.0), (14.0, 0.0), lw="thin")
-    v.line((-8.0, 0.5), (-5.0, 0.5), lw="thin")
-    v.line((11.0, 0.5), (14.0, 0.5), lw="thin")
+    for x0, x1 in ((-8.0, -5.0), (11.0, 14.0)):
+        v.line((x0, 0.0), (x1, 0.0), lw="thin")
+        v.line((x0, 0.5), (x1, 0.5), lw="thin")
     v.polygon([(-5.0, 0.5), (0.0, 0.0), (0.0, 6.0)], lw="thin")
     v.polygon([(6.0, 0.0), (11.0, 0.5), (6.0, 6.0)], lw="thin")
     v.polygon([(0, 0), (6, 0), (6, 6), (0, 6)], lw="med")
@@ -3386,84 +3480,71 @@ def det_ramp(sh, c):
     v.rect(-8.0, 6.0, 22.0, 5.0, lw="thin")
     v.line((-3.5, 6.0), (-3.5, 11.0), lw="fine", dash="dashed")
     v.line((9.5, 6.0), (9.5, 11.0), lw="fine", dash="dashed")
-    v.dim((0, 6.0), (6, 6.0), 6.2, text="6'-0\" (MATCH WALK, 4' MIN.)")
-    v.dim((6.0, 0.0), (6.0, 2.0), -1.0, text="2'-0\"")
-    v.dim((6.0, 2.0), (6.0, 6.0), -1.0, text="")
-    slope_arrow(v, (3.0, 5.6), (3.0, 2.4), "8.33% MAX.", size=DS - 0.6)
-    p = Paper(sh.c)
-    dl(v, (1.0, 1.0), (-8.0, -4.0), ["DETECTABLE WARNING: CAST-IN-PLACE TRUNCATED", "DOMES, FULL WIDTH x 2'-0\", CONTRASTING COLOR"], "r")
-    dl(v, (-2.0, 0.6), (-8.0, 3.5), ["FLARE 10% MAX."], "r")
-    dl(v, (3.0, 8.5), (-8.0, 13.6), ["LANDING 4'x4' MIN., 2% MAX. EACH WAY"], "r")
-    dl(v, (12.0, -0.75), (12.5, 3.0), ["CURB &", "GUTTER"], "r")
-    dl(v, (3.0, -0.1), (12.5, -3.6), ["0\" LIP AT RAMP;", "GUTTER COUNTER-", "SLOPE 5% MAX."], "r")
-    # schematic section A-A
-    sx, sy = c["x"] + 0.35, c["y"] + 0.95
+    v.dim((0, 11.0), (6, 11.0), 1.5, text="6'-0\" (4' MIN.)")
+    v.dim((6.0, 0.0), (6.0, 2.0), -1.2, text="2'-0\"")
+    v.dim((6.0, 2.0), (6.0, 6.0), -1.2, text="4'-0\"")
+    slope_arrow(v, (3.0, 5.6), (3.0, 2.4), "8.33%", size=DS - 0.6)
+    dl(v, (1.0, 1.0), (-8.5, -4.2), ["DETECTABLE WARNING: CAST-IN-PLACE TRUNCATED",
+                                      "DOMES, FULL WIDTH x 2'-0\", CONTRASTING COLOR"])
+    dl(v, (-2.2, 0.5), (-8.5, 3.5), ["FLARE 10% MAX."])
+    dl(v, (1.5, 9.0), (-8.5, 14.3), ["LANDING 4'x4' MIN., 2% MAX. EACH WAY"])
+    dl(v, (12.5, -0.75), (9.8, 3.4), ["CURB &", "GUTTER"])
+    dl(v, (4.5, -0.05), (5.5, -6.2), ["0\" LIP; GUTTER COUNTER-", "SLOPE 5% MAX."])
+    dl(v, (11.5, 8.5), (8.0, 14.3), ["PUBLIC WALK"])
+    sx, sy = c["x"] + 0.35, c["y"] + 0.98
     q = Paper(sh.c)
-    q.text((sx, sy + 0.42), "SECTION THRU RAMP (NTS)", size=DS - 0.6, font=FONT_B)
-    q.polyline([(sx, sy), (sx + 0.6, sy + 0.04), (sx + 0.6, sy + 0.04), (sx + 1.6, sy + 0.24),
-                (sx + 2.6, sy + 0.26)], lw="med")
-    q.polyline([(sx, sy - 0.08), (sx + 2.6, sy - 0.08 + 0.18)], lw="fine", dash="dashed")
+    q.text((sx, sy + 0.36), "SECTION THRU RAMP (NTS)", size=DS - 0.6, font=FONT_B)
+    q.polyline([(sx, sy), (sx + 0.6, sy + 0.04), (sx + 1.6, sy + 0.24), (sx + 2.6, sy + 0.26)],
+               lw="med")
     q.text((sx + 0.3, sy - 0.03), "GUTTER", size=DS - 1.2, anchor="c", valign="top")
-    q.text((sx + 1.1, sy + 0.22), "RAMP 8.33%", size=DS - 1.2, anchor="c", valign="bot")
-    q.text((sx + 2.1, sy + 0.31), "LANDING 2%", size=DS - 1.2, anchor="c", valign="bot")
+    q.text((sx + 1.1, sy + 0.2), "RAMP 8.33% MAX.", size=DS - 1.2, anchor="r", valign="bot")
+    q.text((sx + 2.1, sy + 0.3), "LANDING 2%", size=DS - 1.2, anchor="c", valign="bot")
     _dt(sh, c, 5, "PERPENDICULAR CURB RAMP W/ DETECTABLE WARNING", '1/4" = 1\'-0"')
 
 
 def det_silt(sh, c):
-    v = _cv(sh, c, 1.0, (-2.7, -2.4, 3.2, 3.4), dy=0.15)
-    # ground y = 0 sloping slightly; fabric at x = 0; trench x -0.5..0 depth 0.5
-    _earth(v, [(-2.5, 0.0), (-0.5, 0.0), (-0.5, -0.5), (0.0, -0.5), (0.0, 0.0), (3.0, -0.15),
-               (3.0, -2.2), (-2.5, -2.2)])
+    v = _cv(sh, c, 0.75, (-3.7, -3.6, 3.7, 4.4), dy=0.15)
+    _earth(v, [(-2.5, 0.0), (-0.5, 0.0), (-0.5, -0.5), (0.0, -0.5), (0.0, 0.0), (2.5, -0.12),
+               (2.5, -2.4), (-2.5, -2.4)])
     _grass(v, -2.5, -0.5, 0.0)
-    v.line((0.0, 0.0), (3.0, -0.15), lw="thin")
+    v.line((0.0, 0.0), (2.5, -0.12), lw="thin")
     v.polygon([(-0.5, 0.0), (0.0, 0.0), (0.0, -0.5), (-0.5, -0.5)], lw="thin", fill="white",
               hatch="sand", hatch_kw=dict(scale=0.8))
-    v.rect(0.04, -2.0, 1.5 / 12, 4.5, lw="thin", fill="g20")           # stake
-    v.polyline([(-0.48, -0.48), (-0.02, -0.48), (-0.02, 2.5)], lw="heavy")  # fabric
+    v.rect(0.04, -2.0, 1.125 / 12, 4.5, lw="thin", fill="g20")
+    v.polyline([(-0.48, -0.48), (-0.02, -0.48), (-0.02, 2.5)], lw="heavy")
     for yy in (0.6, 1.4, 2.2):
-        v.line((-0.12, yy), (0.04, yy), lw="thin")
-    break_line(v, (-2.5, -2.2), (3.0, -2.2))
-    v.dim((-0.02, 0.0), (-0.02, 2.5), 0.9, text="24\"-30\"")
-    v.dim((0.06, -2.0), (0.06, 0.0), -0.75, text="18\" MIN.")
-    v.dim((-0.5, -0.5), (0.0, -0.5), -0.35, text="6\"")
-    v.dim((-0.5, -0.5), (-0.5, 0.0), -0.35, text="6\"")
-    flow_arrow(v, (-2.4, 0.5), (-1.2, 0.5))
-    Paper(sh.c).text(v.to_paper((-1.8, 0.75)), "FLOW", size=DS - 0.6, anchor="c", font=FONT_B)
-    dl(v, (-0.02, 1.9), (-2.6, 2.9), ["WOVEN GEOTEXTILE SILT FENCE", "FABRIC (IDOT ART. 1080.02)"], "r")
-    dl(v, (0.1, 1.0), (0.9, 2.6), ["1 1/8\" SQ. HARDWOOD STAKE,", "4'-0\" LONG, 8'-0\" O.C. MAX.,",
-                                  "ON DOWNSTREAM SIDE"], "r")
-    dl(v, (-0.25, -0.3), (-2.6, -1.0), ["TRENCH 6\"x6\"; FABRIC TOE", "LAID IN TRENCH, BACKFILLED", "& COMPACTED"], "r")
-    dl(v, (0.08, 2.15), (0.9, 1.25), ["FASTEN FABRIC TO STAKE", "W/ (3) STAPLES OR TIES"], "r")
-    Paper(sh.c).mtext((c["x"] + 0.25, c["y"] + 1.25),
-                      ["INSTALL ON CONTOUR; TURN ENDS UPSLOPE (J-HOOK). OVERLAP JOINTS",
-                       "AT A STAKE (WRAP 2 STAKES). REMOVE SEDIMENT AT 1/3 HEIGHT.",
-                       "PER ILLINOIS URBAN MANUAL, CODE 920."], size=DS - 0.6)
-    _dt(sh, c, 6, "SILT FENCE", '1" = 1\'-0"')
+        v.line((-0.12, yy), (0.04 + 1.125 / 12, yy), lw="thin")
+    break_line(v, (-2.5, -2.4), (2.5, -2.4))
+    v.dim((-0.02, 0.0), (-0.02, 2.5), 1.0, text="24\"-30\"")
+    v.dim((0.14, -2.0), (0.14, 0.0), -0.9, text="18\" MIN.")
+    v.dim((-0.5, -0.5), (0.0, -0.5), -0.4, text="6\"")
+    flow_arrow(v, (-2.3, 0.45), (-1.3, 0.45))
+    Paper(sh.c).text(v.to_paper((-1.8, 0.75)), "RUNOFF", size=DS - 0.6, anchor="c", font=FONT_B)
+    dl(v, (-0.02, 2.0), (-3.6, 3.9), ["WOVEN GEOTEXTILE FABRIC (IDOT 1080.02)"])
+    dl(v, (0.1, 1.0), (0.8, 3.1), ["1 1/8\" SQ. HARDWOOD STAKE, 4'-0\"", "LONG, 8'-0\" O.C. MAX., DOWNHILL SIDE"])
+    dl(v, (0.08, 1.4), (0.8, 1.8), ["FASTEN FABRIC W/ (3)", "STAPLES OR TIES"])
+    dl(v, (-0.25, -0.3), (-3.6, -2.9), ["6\"x6\" TRENCH; FABRIC TOE IN TRENCH,", "BACKFILLED & COMPACTED"])
+    note_in_cell(sh, c, ["INSTALL ON CONTOUR; TURN ENDS UPSLOPE (J-HOOK). OVERLAP JOINTS",
+                         "AT A STAKE (WRAP 2 STAKES). REMOVE SEDIMENT AT 1/3 HEIGHT.",
+                         "ILLINOIS URBAN MANUAL, CODE 920."])
+    _dt(sh, c, 6, "SILT FENCE", '3/4" = 1\'-0"')
 
 
 def det_inlet(sh, c):
-    v = _cv(sh, c, 0.6, (-4.2, -4.0, 5.6, 2.6), dy=0.2)
+    v = _cv(sh, c, 0.5, (-5.6, -5.0, 5.6, 3.4), dy=0.3)
     R = 2.0
     wt = 5 / 12.0
-    # structure walls
     for sg in (-1, 1):
-        x0 = sg * R
-        x1 = sg * (R + wt)
-        a, b = min(x0, x1), max(x0, x1)
+        a, b = sorted((sg * R, sg * (R + wt)))
         _concrete(v, [(a, -3.6), (b, -3.6), (b, -0.6), (a, -0.6)], lw="thin")
-    # top slab, rings, frame & grate
     _concrete(v, [(-R - wt, -0.6), (-1.2, -0.6), (-1.2, -0.0), (-R - wt, -0.0)], lw="thin")
     _concrete(v, [(1.2, -0.6), (R + wt, -0.6), (R + wt, 0.0), (1.2, 0.0)], lw="thin")
     v.polygon([(-1.35, 0.0), (1.35, 0.0), (1.35, 0.35), (-1.35, 0.35)], lw="thin", fill="g40")
     v.polygon([(-1.15, 0.35), (1.15, 0.35), (1.15, 0.45), (-1.15, 0.45)], lw="thin", fill="g80")
-    for k in range(9):
-        x = -1.0 + k * 0.25
-        v.line((x, 0.35), (x, 0.45), lw="fine", color="white")
-    _earth(v, [(-4.0, -3.6), (-R - wt, -3.6), (-R - wt, 0.45), (-4.0, 0.45)])
-    _earth(v, [(R + wt, -3.6), (4.0, -3.6), (4.0, 0.45), (R + wt, 0.45)])
-    _grass(v, -4.0, -1.35, 0.45)
-    _grass(v, 1.35, 4.0, 0.45)
-    # filter bag
+    _earth(v, [(-3.8, -3.6), (-R - wt, -3.6), (-R - wt, 0.45), (-3.8, 0.45)])
+    _earth(v, [(R + wt, -3.6), (3.8, -3.6), (3.8, 0.45), (R + wt, 0.45)])
+    _grass(v, -3.8, -1.35, 0.45)
+    _grass(v, 1.35, 3.8, 0.45)
     bag = [(-1.1, 0.35), (-1.0, -0.2), (-0.95, -1.9), (-0.6, -2.3), (0.6, -2.3), (0.95, -1.9),
            (1.0, -0.2), (1.1, 0.35)]
     v.polyline(bag, lw="med", dash=[3, 1.5])
@@ -3471,100 +3552,95 @@ def det_inlet(sh, c):
               lw=None, hatch="sand", hatch_kw=dict(scale=0.7))
     for x in (-0.95, 0.95):
         v.circle((x, -0.35), 0.1, lw="fine", fill="white")
-    break_line(v, (-4.0, -3.6), (4.0, -3.6))
-    dl(v, (0.0, 0.42), (-4.1, 2.2), ["EXISTING / PROPOSED FRAME & GRATE"], "r")
-    dl(v, (-1.0, -1.0), (-4.1, -1.2), ["GEOTEXTILE FILTER BAG INSERT", "(DANDY BAG OR EQUAL) SIZED", "TO STRUCTURE"], "r")
-    dl(v, (0.95, -0.35), (2.7, 1.6), ["OVERFLOW OPENINGS", "& LIFTING STRAPS"], "r")
-    dl(v, (0.3, -2.0), (2.7, -2.2), ["SEDIMENT - EMPTY", "AT 1/2 FULL"], "r")
-    dl(v, (R + 0.2, -3.0), (2.7, -3.3), ["CB / INLET STRUCTURE"], "r")
-    Paper(sh.c).mtext((c["x"] + 0.25, c["y"] + 1.25),
-                      ["CURB INLETS IN MAPLE ST. / PRAIRIE AVE.: CURB INLET FILTER WITH",
-                       "OVERFLOW (DANDY CURB SACK OR EQUAL) - DO NOT BLOCK THE CURB OPENING.",
-                       "INSTALL ON NEW STRUCTURES IMMEDIATELY AFTER SETTING THE GRATE."], size=DS - 0.6)
+    break_line(v, (-3.8, -3.6), (3.8, -3.6))
+    flow_arrow(v, (-2.8, 1.0), (-1.4, 0.6))
+    flow_arrow(v, (2.8, 1.0), (1.4, 0.6))
+    dl(v, (0.0, 0.42), (-5.5, 2.9), ["FRAME & GRATE (EXISTING OR NEW)"])
+    dl(v, (-1.0, -1.0), (-5.5, -4.2), ["GEOTEXTILE FILTER BAG INSERT (DANDY", "BAG OR EQUAL), SIZED TO STRUCTURE"])
+    dl(v, (0.95, -0.35), (1.6, 2.2), ["OVERFLOW OPENINGS", "& LIFTING STRAPS"])
+    dl(v, (0.3, -2.0), (1.0, -4.6), ["SEDIMENT - EMPTY AT 1/2 FULL"])
+    dl(v, (R + 0.2, -3.0), (2.6, -3.4), ["STRUCTURE"])
+    note_in_cell(sh, c, ["CURB INLETS IN MAPLE ST. / PRAIRIE AVE.: CURB INLET FILTER WITH",
+                         "OVERFLOW (DANDY CURB SACK OR EQUAL); DO NOT BLOCK THE CURB",
+                         "OPENING. INSTALL ON NEW STRUCTURES AS SOON AS GRATES ARE SET."])
     _dt(sh, c, 7, "INLET PROTECTION", "NTS")
 
 
 def det_entrance(sh, c):
-    # plan at 1" = 20'
-    v = sh.view(c["x"] + 0.75, c["y"] + c["h"] - 2.45, 1 / 20.0)
+    _CELL.clear()
+    _CELL.update(c)
+    v = sh.view(c["x"] + 0.7, c["y"] + c["h"] - 2.55, 1 / 20.0)
     v.rect(0, 0, 70, 24, lw="thin", fill="white", hatch="gravel", hatch_kw=dict(scale=0.9))
-    v.rect(70, -6, 10, 36, lw="thin")
-    v.line((76, -6), (76, 30), lw="fine")
-    v.line((80, -6), (80, 30), lw="fine", dash="center")
-    for sg in (-1, 1):
-        y0 = 0 if sg < 0 else 24
-        v.polyline([(70, y0), (66, y0 + sg * 4)], lw="thin")
-    v.dim((0, 24), (70, 24), 3.0, text="70'-0\" (50' MIN.)")
-    v.dim((0, 0), (0, 24), 3.0, text="24'-0\"")
+    v.rect(70, -8, 11, 40, lw="thin")
+    v.line((76, -8), (76, 32), lw="fine")
+    v.line((81, -8), (81, 32), lw="fine", dash="center")
+    v.dim((0, 24), (70, 24), 4.0, text="70'-0\" (50' MIN.)")
+    v.dim((0, 0), (0, 24), 4.0, text="24'-0\"")
     p = Paper(sh.c)
-    p.text(v.to_paper((35, 12)), "CA-1 STONE", size=DS, font=FONT_B, anchor="c", valign="mid")
-    p.mtext(v.to_paper((75, 34)), ["MAPLE ST.", "(EX. PAVEMENT)"], size=DS - 0.8, anchor="c", valign="bot")
-    flow_arrow(v, (55, -4), (75, -4))
-    p.text(v.to_paper((40, -6)), "EXIT TO MAPLE ST.", size=DS - 0.8, anchor="c", valign="top")
-    p.text(v.to_paper((0, -14)), "PLAN", size=DS, font=FONT_B, valign="top")
-    # section (NTS)
-    sx, sy = c["x"] + 0.5, c["y"] + 1.85
+    ptext(p, v.to_paper((35, 12)), "CA-1 STONE ON GEOTEXTILE", DS, FONT_B, "c", "mid", 0, "black", True)
+    p.mtext(v.to_paper((78, 34)), ["MAPLE ST."], size=DS - 0.6, anchor="c", valign="bot")
+    flow_arrow(v, (45, -5), (62, -5))
+    p.text(v.to_paper((40, -7)), "EXIT TO MAPLE ST. (PUBLIC WALK / CURB: TEMP. APRON)", size=DS - 0.8,
+           anchor="c", valign="top")
+    p.text(v.to_paper((0, 33)), "PLAN (1\" = 20')", size=DS, font=FONT_B, valign="bot")
+    sx, sy = c["x"] + 0.55, c["y"] + 2.55
     q = Paper(sh.c)
     q.text((sx, sy + 0.95), "SECTION (NTS)", size=DS, font=FONT_B)
-    q.polygon([(sx, sy), (sx + 4.8, sy), (sx + 4.8, sy + 0.45), (sx, sy + 0.45)], lw="thin",
+    q.polygon([(sx, sy), (sx + 4.6, sy), (sx + 4.6, sy + 0.45), (sx, sy + 0.45)], lw="thin",
               fill="white", hatch="gravel", hatch_kw=dict(scale=0.9))
-    q.line((sx, sy - 0.02), (sx + 4.8, sy - 0.02), lw="heavy", dash=[3, 1.5])
-    q.polygon([(sx - 0.2, sy - 0.02), (sx + 5.0, sy - 0.02), (sx + 5.0, sy - 0.5), (sx - 0.2, sy - 0.5)],
+    q.line((sx, sy - 0.02), (sx + 4.6, sy - 0.02), lw="heavy", dash=[3, 1.5])
+    q.polygon([(sx - 0.2, sy - 0.02), (sx + 4.9, sy - 0.02), (sx + 4.9, sy - 0.5), (sx - 0.2, sy - 0.5)],
               lw=None, hatch="earth", hatch_kw=dict(scale=0.9, w="hair"))
-    q.line((sx + 4.8, sy + 0.45), (sx + 5.2, sy + 0.3), lw="thin")
-    q.text((sx + 5.1, sy + 0.08), "8\"", size=DS, anchor="c")
-    q.line((sx + 4.95, sy), (sx + 4.95, sy + 0.45), lw="fine")
-    callout(sh.view(0, 0, 1), (sx + 1.0, sy + 0.3), (sx + 1.6, sy + 0.78),
-            ["8\" CA-1 (2\"-3\") CRUSHED STONE"], DS, side="r")
-    callout(sh.view(0, 0, 1), (sx + 2.6, sy - 0.02), (sx + 3.0, sy - 0.75),
-            ["NON-WOVEN GEOTEXTILE (IDOT 1080.02) ON", "COMPACTED SUBGRADE"], DS, side="r")
-    Paper(sh.c).mtext((c["x"] + 0.25, c["y"] + 0.92 + 0.0),
-                      ["TOP-DRESS WITH STONE AS NEEDED; SWEEP MAPLE ST. DAILY. REMOVE AT",
-                       "COMPLETION; RESTORE CURB, WALK & PARKWAY (C-200). IUM CODE 930."],
-                      size=DS - 0.6)
+    q.line((sx + 4.75, sy), (sx + 4.75, sy + 0.45), lw="fine")
+    q.text((sx + 4.85, sy + 0.2), "8\"", size=DS, anchor="l", valign="mid")
+    pv = sh.view(0, 0, 1)
+    dl(pv, (sx + 1.0, sy + 0.3), (sx + 1.5, sy + 0.78), ["8\" CA-1 (2\"-3\") CRUSHED STONE"])
+    dl(pv, (sx + 2.6, sy - 0.02), (sx + 1.4, sy - 0.75), ["NON-WOVEN GEOTEXTILE (IDOT 1080.02)", "ON COMPACTED SUBGRADE"])
+    note_in_cell(sh, c, ["TOP-DRESS WITH STONE AS NEEDED; SWEEP MAPLE ST. DAILY. REMOVE",
+                         "AT COMPLETION AND RESTORE CURB, WALK & PARKWAY (C-200).",
+                         "ILLINOIS URBAN MANUAL, CODE 930."])
     _dt(sh, c, 8, "STABILIZED CONSTRUCTION ENTRANCE", "AS NOTED")
 
 
 def det_trench(sh, c):
-    v = _cv(sh, c, 0.5, (-6.4, -8.2, 5.4, 1.4), dy=0.3)
+    v = _cv(sh, c, 0.5, (-5.7, -8.6, 5.5, 2.4), dy=0.1)
     D = 1.0
     hw = 1.5
     inv = -6.5
     crown = inv + D
-    _earth(v, [(-4.5, inv - 0.8), (-hw, inv - 0.8), (-hw, 0.0), (-4.5, 0.0)])
-    _earth(v, [(hw, inv - 0.8), (4.5, inv - 0.8), (4.5, 0.0), (hw, 0.0)])
-    _earth(v, [(-4.5, inv - 1.5), (4.5, inv - 1.5), (4.5, inv - 0.5), (-4.5, inv - 0.5)])
+    E_ = 3.2
+    _earth(v, [(-E_, inv - 0.8), (-hw, inv - 0.8), (-hw, 0.0), (-E_, 0.0)])
+    _earth(v, [(hw, inv - 0.8), (E_, inv - 0.8), (E_, 0.0), (hw, 0.0)])
+    _earth(v, [(-E_, inv - 1.5), (E_, inv - 1.5), (E_, inv - 0.5), (-E_, inv - 0.5)])
     _gravel(v, [(-hw, inv - 0.5), (hw, inv - 0.5), (hw, crown + 1.0), (-hw, crown + 1.0)])
     v.polygon([(-hw, crown + 1.0), (hw, crown + 1.0), (hw, -0.5), (-hw, -0.5)], lw="thin",
               fill="white", hatch="earth", hatch_kw=dict(scale=1.3, w="hair"))
     v.polygon([(-hw, -0.5), (hw, -0.5), (hw, 0.0), (-hw, 0.0)], lw="thin", fill="g10")
-    _grass(v, -4.5, 4.5, 0.0)
+    _grass(v, -E_, E_, 0.0)
     v.circle((0, inv + D / 2), D / 2, lw="med", fill="white")
     v.circle((0, inv + D / 2), D / 2 - 0.08, lw="fine")
     v.line((-hw, inv + D / 2), (hw, inv + D / 2), lw="fine", dash="center")
     v.line((-1.0, -1.5), (1.0, -1.5), lw="thin", dash=[2, 1])
-    break_line(v, (-4.5, inv - 1.5), (4.5, inv - 1.5))
-    v.dim((-hw, inv - 0.5), (hw, inv - 0.5), -0.9, text="O.D. + 24\" MAX.")
+    break_line(v, (-E_, inv - 1.5), (E_, inv - 1.5))
+    v.dim((-hw, inv - 0.5), (hw, inv - 0.5), -1.0, text="O.D. + 24\" MAX.")
     v.dim((hw, inv - 0.5), (hw, inv), -0.6, text="6\"")
     v.dim((hw, crown), (hw, crown + 1.0), -0.6, text="12\"")
-    v.dim((hw, inv + D / 2), (hw, crown), -0.6, text="")
-    dl(v, (-0.6, -0.25), (-6.3, 0.9), ["6\" TOPSOIL & SOD / SEED (OR PAVEMENT", "PER 1/C-500, 3/C-500)"], "r")
-    dl(v, (-0.6, -2.5), (-6.3, -2.2), ["FINAL BACKFILL: CA-6 @ 95% UNDER /", "WITHIN 2' OF PAVEMENT; SUITABLE",
-                                      "EXCAV. MATL. @ 90% IN LAWNS"], "r")
-    dl(v, (0.8, -1.5), (1.9, -0.9), ["DETECTABLE WARNING", "TAPE 18\" BELOW GRADE"], "r")
-    dl(v, (-1.2, crown + 0.6), (-6.3, -4.6), ["INITIAL BACKFILL CA-7,", "12\" ABOVE PIPE"], "r")
-    dl(v, (-1.1, inv + 0.3), (-6.3, -6.2), ["HAUNCHING CA-7 TO SPRINGLINE,", "SHOVEL-SLICED"], "r")
-    dl(v, (-0.9, inv - 0.25), (-6.3, -7.5), ["BEDDING CA-7, 6\" MIN."], "r")
-    dl(v, (0.35, inv + 0.85), (2.3, -4.2), ["PIPE (SEE C-400)"], "r")
-    Paper(sh.c).mtext((c["x"] + 0.25, c["y"] + 1.15),
-                      ["EXCAVATION PER OSHA 29 CFR 1926 SUBPART P (SLOPE, BENCH OR SHORE).",
-                       "COPPER & DIP WATER: SAND BEDDING ACCEPTABLE. COMPACT IN 8\" LIFTS."],
-                      size=DS - 0.6)
+    dl(v, (-0.6, -0.25), (-5.6, 1.7), ["6\" TOPSOIL & SOD / SEED (PAVEMENT PER 1 & 3/C-500)"])
+    dl(v, (-0.6, -2.6), (-5.6, -1.0), ["FINAL BACKFILL: CA-6", "@ 95% UNDER / WITHIN", "2' OF PAVEMENT;",
+                                      "EXCAV. MATL. @ 90%", "IN LAWNS"])
+    dl(v, (0.8, -1.5), (2.0, -0.9), ["WARNING TAPE", "18\" BELOW GRADE"])
+    dl(v, (-1.2, crown + 0.6), (-5.6, -4.2), ["INITIAL BACKFILL", "CA-7, 12\" OVER PIPE"])
+    dl(v, (-1.1, inv + 0.3), (-5.6, -5.7), ["HAUNCHING CA-7", "TO SPRINGLINE"])
+    dl(v, (-0.9, inv - 0.25), (-5.6, -7.3), ["BEDDING CA-7, 6\" MIN."])
+    dl(v, (0.35, inv + 0.85), (2.6, -4.0), ["PIPE (SEE", "C-400)"])
+    note_in_cell(sh, c, ["EXCAVATION PER OSHA 29 CFR 1926 SUBPART P (SLOPE, BENCH OR",
+                         "SHORE). COPPER & DIP WATER: SAND BEDDING ACCEPTABLE.",
+                         "COMPACT IN 8\" LIFTS; NO FROZEN MATERIAL."])
     _dt(sh, c, 9, "UTILITY TRENCH & BEDDING", '1/2" = 1\'-0"')
 
 
 def det_cleanout(sh, c):
-    v = _cv(sh, c, 0.75, (-3.6, -4.2, 4.2, 1.6), dy=0.25)
+    v = _cv(sh, c, 0.5, (-5.6, -5.4, 5.6, 4.0), dy=0.2)
     r = 3.25 / 12
     _earth(v, [(-3.0, -4.0), (3.5, -4.0), (3.5, -0.5), (-3.0, -0.5)])
     v.polygon([(-0.75, 0.0), (0.75, 0.0), (0.75, -0.5), (-0.75, -0.5)], lw="med", fill="white",
@@ -3576,35 +3652,33 @@ def det_cleanout(sh, c):
     _grass(v, -3.0, -0.75, 0.0)
     _grass(v, 0.75, 3.5, 0.0)
     v.polygon([(-0.4, 0.0), (0.4, 0.0), (0.4, -0.35), (-0.4, -0.35)], lw="thin", fill="g40")
-    # riser + sweep to the main
     v.polygon([(-r, -0.35), (r, -0.35), (r, -2.6), (-r, -2.6)], lw="thin", fill="white")
     v.polygon([(-3.0, -3.2), (3.5, -3.2), (3.5, -3.2 + 2 * r), (-3.0, -3.2 + 2 * r)], lw="thin",
               fill="white")
     v.polyline([(-r, -2.6), (-r - 0.25, -2.9), (-r - 0.45, -3.2 + 2 * r)], lw="thin")
     v.polyline([(r, -2.6), (r + 0.25, -2.9), (r + 0.45, -3.2 + 2 * r)], lw="thin")
-    v.polygon([(-r - 0.6, -3.2 - 0.33), (3.5, -3.2 - 0.33), (3.5, -3.2), (-r - 0.6, -3.2)], lw=None,
-              hatch="gravel", hatch_kw=dict(scale=0.6))
+    v.polygon([(-3.0, -3.2 - 0.5), (3.5, -3.2 - 0.5), (3.5, -3.2), (-3.0, -3.2)], lw=None,
+              fill="white", hatch="gravel", hatch_kw=dict(scale=0.6))
     v.rect(-0.18, -0.35, 0.36, 0.08, lw="fine", fill="g80")
     flow_arrow(v, (1.5, -3.2 + r), (3.0, -3.2 + r))
     break_line(v, (-3.0, -4.0), (3.5, -4.0))
     v.dim((-0.75, 0.0), (0.75, 0.0), 0.8, text="18\" SQ.")
-    v.dim((0.75, 0.0), (0.75, -0.5), -0.55, text="6\"")
-    dl(v, (0.0, -0.05), (-3.5, 1.3), ["C.I. CLEANOUT FRAME & SCREW COVER", "(NEENAH R-1976 OR EQUAL), FLUSH W/ GRADE"], "r")
-    dl(v, (0.6, -0.3), (1.3, 0.85), ["6\" CONC. COLLAR,", "18\"x18\""], "r")
-    dl(v, (-0.1, -0.33), (-3.5, -1.0), ["THREADED PVC PLUG"], "r")
-    dl(v, (-r, -1.8), (-3.5, -1.8), ["6\" PVC RISER (SDR-26)"], "r")
-    dl(v, (-r - 0.3, -2.95), (-3.5, -2.55), ["COMBINATION WYE & 1/8 BEND", "(2-WAY: TWO WYES BACK TO BACK)"], "r")
-    dl(v, (2.3, -3.2 + 2 * r), (1.6, -2.1), ["6\" PVC SANITARY"], "r")
-    _dt(sh, c, 10, "SANITARY CLEANOUT", '3/4" = 1\'-0"')
+    v.dim((0.75, 0.0), (0.75, -0.5), -0.6, text="6\"")
+    dl(v, (0.0, -0.05), (-5.5, 3.3), ["C.I. CLEANOUT FRAME & SCREW COVER", "(NEENAH R-1976 OR EQ.), FLUSH W/ GRADE"])
+    dl(v, (0.6, -0.3), (1.4, 1.9), ["6\" x 18\" x 18\"", "CONCRETE COLLAR"])
+    dl(v, (-0.1, -0.33), (-5.5, 1.2), ["THREADED PVC PLUG"])
+    dl(v, (-r, -1.8), (-5.5, -1.6), ["6\" PVC RISER"])
+    dl(v, (-r - 0.3, -2.95), (-5.5, -4.7), ["COMBINATION WYE & 1/8 BEND (2-WAY:", "TWO WYES BACK TO BACK AT CO-1)"])
+    dl(v, (2.3, -3.2 + 2 * r), (2.0, -1.4), ["6\" PVC SDR-26", "SANITARY"])
+    _dt(sh, c, 10, "SANITARY CLEANOUT", '1/2" = 1\'-0"')
 
 
 def det_manhole(sh, c):
-    v = _cv(sh, c, 0.4, (-8.6, -9.4, 6.6, 1.6), dy=0.2)
+    v = _cv(sh, c, 0.375, (-7.6, -10.6, 7.6, 3.6), dy=0.1)
     R, wt = 2.0, 5 / 12
     base_t = 8 / 12
     inv = -5.0
     bot = inv - 2.0
-    # walls
     for sg in (-1, 1):
         a, b = sorted((sg * R, sg * (R + wt)))
         _concrete(v, [(a, bot), (b, bot), (b, -1.0), (a, -1.0)], lw="thin")
@@ -3612,95 +3686,91 @@ def det_manhole(sh, c):
                   (-R - wt - 0.5, bot)], lw="thin")
     _concrete(v, [(-R - wt, -1.0), (-1.2, -1.0), (-1.2, -0.5), (-R - wt, -0.5)], lw="thin")
     _concrete(v, [(1.2, -1.0), (R + wt, -1.0), (R + wt, -0.5), (1.2, -0.5)], lw="thin")
-    for k, y in enumerate((-0.5, -0.33)):
+    for y in (-0.5, -0.33):
         v.polygon([(-1.6, y), (-1.2, y), (-1.2, y + 0.17), (-1.6, y + 0.17)], lw="fine", fill="g40")
         v.polygon([(1.2, y), (1.6, y), (1.6, y + 0.17), (1.2, y + 0.17)], lw="fine", fill="g40")
     v.polygon([(-1.6, -0.16), (1.6, -0.16), (1.6, 0.0), (-1.6, 0.0)], lw="thin", fill="g80")
-    _earth(v, [(-8.0, bot - base_t - 0.6), (-R - wt, bot - base_t - 0.6), (-R - wt, 0.0), (-8.0, 0.0)])
-    _earth(v, [(R + wt, bot - base_t - 0.6), (6.0, bot - base_t - 0.6), (6.0, 0.0), (R + wt, 0.0)])
+    E_ = 4.6
+    _earth(v, [(-E_, bot - base_t - 0.6), (-R - wt, bot - base_t - 0.6), (-R - wt, 0.0), (-E_, 0.0)])
+    _earth(v, [(R + wt, bot - base_t - 0.6), (E_, bot - base_t - 0.6), (E_, 0.0), (R + wt, 0.0)])
     _gravel(v, [(-R - wt - 0.5, bot - base_t - 0.5), (R + wt + 0.5, bot - base_t - 0.5),
                 (R + wt + 0.5, bot - base_t), (-R - wt - 0.5, bot - base_t)])
-    _grass(v, -8.0, -1.6, 0.0)
-    _grass(v, 1.6, 6.0, 0.0)
-    # pipes
-    v.polygon([(-8.0, inv), (-R - wt, inv), (-R - wt, inv + 1.0), (-8.0, inv + 1.0)], lw="thin",
+    _grass(v, -E_, -1.6, 0.0)
+    _grass(v, 1.6, E_, 0.0)
+    v.polygon([(-E_, inv), (-R - wt, inv), (-R - wt, inv + 1.0), (-E_, inv + 1.0)], lw="thin",
               fill="white")
-    v.polygon([(R + wt, inv - 0.1), (6.0, inv - 0.12), (6.0, inv + 0.9), (R + wt, inv + 0.9)],
+    v.polygon([(R + wt, inv - 0.1), (E_, inv - 0.12), (E_, inv + 0.9), (R + wt, inv + 0.9)],
               lw="thin", fill="white")
-    # steps
-    for k in range(int((-1.2 - inv) / 1.333)):
+    for k in range(3):
         y = -1.4 - k * 1.333
         v.line((R - 0.05, y), (R - 0.45, y), lw="med")
-    v.line((-R, bot + 0.0), (R, bot), lw="fine")
-    v.text((0, bot + 0.9), "2'-0\" SUMP (CB)", size=DS - 0.6, anchor="c", valign="mid")
     v.line((-R, inv), (R, inv), lw="fine", dash="dashed")
-    break_line(v, (-8.0, bot - base_t - 0.6), (6.0, bot - base_t - 0.6))
-    v.dim((-R, bot - 1.5), (R, bot - 1.5), 0, text="4'-0\" I.D.")
-    v.dim((R + wt, inv), (R + wt, bot), -2.2, text="2'-0\"")
-    dl(v, (0.0, -0.05), (-8.5, 1.4), ["FRAME & GRATE (CB): NEENAH R-4342; LID (MH):", "R-1712 \"STORM\" / \"SANITARY\""], "r")
-    dl(v, (-1.4, -0.33), (-8.5, -1.1), ["ADJ. RINGS 8\" MAX., MORTARED;", "CHIMNEY SEAL ON SANITARY"], "r")
-    dl(v, (-R - 0.2, -2.5), (-8.5, -2.6), ["48\" PRECAST REINF. CONC.", "ASTM C478, 5\" WALL"], "r")
-    dl(v, (-R - wt - 0.1, inv + 0.5), (-8.5, -4.0), ["FLEXIBLE BOOT", "ASTM C923 (TYP.)"], "r")
-    dl(v, (R - 0.3, -2.733), (3.2, -2.0), ["STEPS @ 16\" O.C.", "(M.A. INDUSTRIES", "PS2-PF OR EQUAL)"], "r")
-    dl(v, (0.0, bot - base_t / 2), (-8.5, -8.4), ["8\" PRECAST BASE; MH: CONC. BENCH", "& CHANNEL; CB: 2' SUMP"], "r")
-    dl(v, (2.5, bot - base_t - 0.3), (3.0, -8.8), ["6\" CA-7 BASE"], "r")
+    v.text((0, bot + 0.9), "2'-0\" SUMP (CB)", size=DS - 0.8, anchor="c", valign="mid")
+    break_line(v, (-E_, bot - base_t - 0.6), (E_, bot - base_t - 0.6))
+    v.dim((-R, bot - 1.6), (R, bot - 1.6), 0, text="4'-0\" I.D.")
+    v.dim((R + wt, inv), (R + wt, bot), -1.6, text="2'-0\"")
+    dl(v, (0.0, -0.05), (-7.5, 3.0), ["FRAME & GRATE: CB NEENAH R-4342; MH R-1712",
+                                       "LID CAST \"STORM\" / \"SANITARY\""])
+    dl(v, (-1.4, -0.33), (-7.5, 1.3), ["ADJ. RINGS 8\" MAX.; CHIMNEY", "SEAL ON SANITARY"])
+    dl(v, (-R - wt, -2.5), (-7.5, -1.9), ["48\" PRECAST", "ASTM C478,", "5\" WALL"])
+    dl(v, (-R - wt - 0.1, inv + 0.5), (-7.5, -4.4), ["FLEXIBLE BOOT", "ASTM C923"])
+    dl(v, (R - 0.3, -2.733), (4.9, -1.8), ["STEPS", "@ 16\" O.C."])
+    dl(v, (0.0, bot - base_t / 2), (-7.5, -9.6), ["8\" PRECAST BASE; MH: BENCH & CHANNEL; CB: SUMP"])
+    dl(v, (2.8, bot - base_t - 0.3), (4.0, -7.5), ["6\" CA-7"])
     _dt(sh, c, 11, "STORM MANHOLE / CATCH BASIN (48\")", '3/8" = 1\'-0"')
 
 
 def det_thrust(sh, c):
-    v = _cv(sh, c, 0.6, (-3.6, -3.0, 5.6, 4.2), dy=1.1)
+    v = _cv(sh, c, 0.5, (-5.4, -4.0, 5.6, 5.2), dy=1.1)
     D = 0.6
-    # 90 deg bend: pipe from west along y=0 turning north at x=0
-    v.polygon([(-3.0, -D / 2), (0.0, -D / 2), (0.0, D / 2), (-3.0, D / 2)], lw="thin", fill="white")
-    v.polygon([(-D / 2, 0.0), (D / 2, 0.0), (D / 2, 3.0), (-D / 2, 3.0)], lw="thin", fill="white")
-    v.polygon([(-D / 2, D / 2), (0.0, D / 2), (D / 2, 0.0), (D / 2, -D / 2), (0.0, -D / 2)],
-              lw="thin", fill="white")
-    blk = [(D / 2, -D / 2), (D / 2 + 0.05, D / 2), (2.2, 1.6), (2.2, -2.2), (-1.6, -2.2),
-           (-D / 2, -D / 2 - 0.05)]
-    _concrete(v, [(0.0 + D / 2, -D / 2), (2.2, 1.0), (2.2, -2.2), (-1.0, -2.2), (0.0, -D / 2)],
+    v.polygon([(-3.6, -D / 2), (0.0, -D / 2), (0.0, D / 2), (-3.6, D / 2)], lw="thin", fill="white")
+    v.polygon([(-D / 2, 0.0), (D / 2, 0.0), (D / 2, 3.6), (-D / 2, 3.6)], lw="thin", fill="white")
+    _concrete(v, [(D / 2, -D / 2), (D / 2, 0.6), (2.4, 1.4), (2.4, -2.4), (-1.4, -2.4), (-1.4, -D / 2)],
               lw="med")
-    _earth(v, [(2.2, 1.5), (3.0, 1.5), (3.0, -2.6), (-1.6, -2.6), (-1.6, -2.2), (2.2, -2.2)])
-    flow_arrow(v, (-0.5, -0.4), (1.2, -1.4))
-    dl(v, (1.4, -1.4), (2.8, 3.4), ["CONCRETE THRUST BLOCK, 3,000 PSI,", "POURED AGAINST UNDISTURBED SOIL"], "r")
-    dl(v, (0.15, 0.25), (-3.5, 2.6), ["MJ 90 DEG. BEND WITH", "RESTRAINED JOINTS"], "r")
-    dl(v, (0.0, -D / 2), (-3.5, -2.4), ["KEEP JOINTS & BOLTS", "CLEAR OF CONCRETE;", "POLY SHEET BETWEEN"], "r")
-    p = Paper(sh.c)
-    p.text(v.to_paper((-3.0, 3.6)), "PLAN - HORIZONTAL BEND", size=DS, font=FONT_B)
+    _earth(v, [(2.4, 1.9), (3.2, 1.9), (3.2, -3.0), (-1.9, -3.0), (-1.9, -2.4), (2.4, -2.4)])
+    v.polygon([(-D / 2, D / 2), (0.0, D / 2), (D / 2, 0.0), (D / 2, -D / 2), (-D / 2, -D / 2)],
+              lw="thin", fill="white")
+    flow_arrow(v, (0.2, -0.4), (1.4, -1.4))
+    dl(v, (1.6, -1.6), (0.9, 4.6), ["CONCRETE THRUST BLOCK, 3,000 PSI,", "AGAINST UNDISTURBED SOIL"])
+    dl(v, (0.15, 0.2), (-5.3, 2.4), ["MJ 90 DEG. BEND,", "RESTRAINED JOINTS"])
+    dl(v, (-0.6, -D / 2), (-5.3, -1.6), ["KEEP JOINTS & BOLTS", "CLEAR; POLY SHEET", "BETWEEN"])
+    dl(v, (-2.6, 0.0), (-5.3, 0.6), ["6\" DIP"])
+    sh.text(v.to_paper((-5.3, 5.0)), "PLAN - HORIZONTAL BEND", size=DS, font=FONT_B, valign="top")
     rows = [["90 DEG. BEND", "6.0"], ["45 DEG. BEND", "3.0"], ["22 1/2 DEG. BEND", "1.5"],
             ["11 1/4 DEG. BEND", "1.0"], ["TEE / PLUG / DEAD END", "4.0"]]
-    table(sh, c["x"] + 0.6, c["y"] + 2.3, [("6\" FITTING", 2.0), ("MIN. BEARING AREA (SF)", 2.4)],
+    table(sh, c["x"] + 0.6, c["y"] + 2.45, [("6\" FITTING", 2.0), ("MIN. BEARING AREA (SF)", 2.4)],
           rows, row_h=0.16, size=DS - 0.4, align=["l", "c"])
-    sh.mtext((c["x"] + 0.6, c["y"] + 1.18), ["BASED ON 200 PSI TEST PRESSURE AND 2,000 PSF ALLOWABLE",
-                                             "SOIL BEARING. VERTICAL BEND AT BUILDING: RESTRAINED",
-                                             "JOINTS + 1 CY CONCRETE BLOCK UNDER BEND."], size=DS - 0.6)
+    note_in_cell(sh, c, ["BASED ON 200 PSI TEST PRESSURE AND 2,000 PSF ALLOWABLE SOIL",
+                         "BEARING. VERTICAL BEND AT BUILDING: RESTRAINED JOINTS + 1 CY",
+                         "CONCRETE BLOCK UNDER THE BEND."], y=c["y"] + 1.22)
     _dt(sh, c, 12, "THRUST BLOCK (WATER SERVICE)", "NTS")
 
 
 def det_tpf(sh, c):
-    v = _cv(sh, c, 0.375, (-4.0, -2.8, 13.5, 6.2), dy=0.9)
-    _earth(v, [(-3.0, -2.5), (13.0, -2.5), (13.0, 0.0), (-3.0, 0.0)])
+    v = _cv(sh, c, 0.25, (-8.4, -5.5, 14.4, 10.5), dy=0.9)
+    _earth(v, [(-3.0, -3.0), (13.0, -3.0), (13.0, 0.0), (-3.0, 0.0)])
     _grass(v, -3.0, 13.0, 0.0)
     for x in (0.0, 6.0, 12.0):
-        v.rect(x - 0.06, -2.0, 0.12, 6.0, lw="thin", fill="g60")
+        v.rect(x - 0.08, -2.0, 0.16, 6.0, lw="thin", fill="g60")
     v.polygon([(0.0, 0.2), (12.0, 0.2), (12.0, 4.0), (0.0, 4.0)], lw="thin", hatch="ansi37",
-              hatch_kw=dict(spacing=0.06, w="hair"))
-    v.rect(4.2, 2.2, 3.6, 1.2, lw="thin", fill="white")
-    Paper(sh.c).mtext(v.to_paper((6.0, 2.8)), ["TREE PROTECTION", "ZONE - KEEP OUT"], size=DS - 1.2,
+              hatch_kw=dict(spacing=0.05, w="hair"))
+    v.rect(3.8, 2.0, 4.4, 1.5, lw="thin", fill="white")
+    Paper(sh.c).mtext(v.to_paper((6.0, 2.75)), ["TREE PROTECTION", "ZONE - KEEP OUT"], size=DS - 1.4,
                       anchor="c", valign="mid", font=FONT_B)
-    break_line(v, (-3.0, -2.5), (13.0, -2.5))
-    v.dim((0.0, 4.0), (6.0, 4.0), 1.0, text="6'-0\" O.C. (8' MAX.)")
-    v.dim((12.0, 0.0), (12.0, 4.0), -1.0, text="4'-0\"")
-    v.dim((12.0, -2.0), (12.0, 0.0), -1.0, text="2'-0\"")
-    dl(v, (3.0, 3.6), (-3.8, 5.6), ["4' HIGH ORANGE HIGH-DENSITY POLYETHYLENE", "BARRIER FENCE, FASTENED W/ (3) TIES PER POST"], "r")
-    dl(v, (6.0, 1.0), (-3.8, -1.2), ["STEEL T-POST, 6' LONG,", "DRIVEN 2' MIN."], "r")
-    dl(v, (9.0, 2.0), (9.5, 5.4), ["SIGN EVERY 50'", "(BILINGUAL)"], "r")
-    sh.mtext((c["x"] + 0.3, c["y"] + 1.95), [
-        "LOCATE AT THE DRIP LINE OR 1'-0\" RADIUS PER INCH OF DBH, WHICHEVER IS",
-        "GREATER, AND AROUND THE PLAYGROUND (C-300). INSTALL BEFORE ANY WORK.",
-        "NO STORAGE, PARKING, STOCKPILING, WASHOUT, TRENCHING OR GRADE CHANGE",
-        "INSIDE THE FENCE. ROOTS > 1\" EXPOSED BY EXCAVATION: CLEAN-CUT WITH A",
-        "SAW, COVER WITHIN 24 HRS. REMOVE FENCE AFTER FINAL RESTORATION."], size=DS - 0.5)
-    _dt(sh, c, 13, "TREE PROTECTION FENCE", '3/8" = 1\'-0"')
+    break_line(v, (-3.0, -3.0), (13.0, -3.0))
+    v.dim((0.0, 4.0), (6.0, 4.0), 1.2, text="6'-0\" O.C. (8' MAX.)")
+    v.dim((12.0, 0.0), (12.0, 4.0), -1.2, text="4'-0\"")
+    v.dim((12.0, -2.0), (12.0, 0.0), -1.2, text="2'-0\"")
+    dl(v, (2.0, 3.6), (-8.3, 9.3), ["4' HIGH ORANGE HIGH-DENSITY POLYETHYLENE",
+                                     "BARRIER FENCE, (3) TIES PER POST"])
+    dl(v, (6.0, 1.0), (-8.3, -4.6), ["STEEL T-POST, 6' LONG, DRIVEN 2' MIN."])
+    dl(v, (7.0, 2.0), (2.0, 7.2), ["SIGN EVERY 50' (ENGLISH/SPANISH)"])
+    note_in_cell(sh, c, ["LOCATE AT THE DRIP LINE OR 1'-0\" RADIUS PER INCH OF DBH, WHICHEVER",
+                         "IS GREATER, AND AROUND THE PLAYGROUND (C-300). INSTALL BEFORE ANY",
+                         "WORK. NO STORAGE, PARKING, STOCKPILING, WASHOUT, TRENCHING OR",
+                         "GRADE CHANGE INSIDE. ROOTS > 1\" EXPOSED BY EXCAVATION: CLEAN-CUT,",
+                         "COVER WITHIN 24 HRS. REMOVE AFTER FINAL RESTORATION."], y=c["y"] + 1.75)
+    _dt(sh, c, 13, "TREE PROTECTION FENCE", '1/4" = 1\'-0"')
 
 
 CIVIL_GENERAL_NOTES = [
@@ -3738,18 +3808,52 @@ CIVIL_GENERAL_NOTES = [
 
 
 def draw_c500(sh):
-    cells = sh.cells(5, 3)
+    cells = sh.cells(5, 3, lines=False)
+    X0, X1, Y0, Y1 = sh.x0, sh.x1, sh.y0, sh.y1
+    cw, ch = (X1 - X0) / 5, (Y1 - Y0) / 3
+    for k in range(1, 5):
+        sh.line((X0 + k * cw, Y0 + (ch if k == 4 else 0.0)), (X0 + k * cw, Y1), lw="fine")
+    for r in range(1, 3):
+        sh.line((X0, Y0 + r * ch), (X1, Y0 + r * ch), lw="fine")
     fns = [det_sidewalk, det_curb, det_patch, det_stoop, det_ramp,
            det_silt, det_inlet, det_entrance, det_trench, det_cleanout,
            det_manhole, det_thrust, det_tpf]
     for fn, cl in zip(fns, cells):
         fn(sh, cl)
     nc = sh.merge_cells(cells, [13, 14])
-    # erase the divider between the two merged cells
-    xm = cells[14]["x"]
-    sh.line((xm, nc["y"] + 0.02), (xm, nc["y"] + nc["h"] - 0.02), lw=1.4, color="white")
-    notes_block(sh, nc["x"] + 0.25, nc["y"] + nc["h"] - 0.25, "CIVIL GENERAL NOTES",
-                CIVIL_GENERAL_NOTES, nc["w"] - 0.5, size=NT)
+    h = notes_block(sh, nc["x"] + 0.25, nc["y"] + nc["h"] - 0.25, "CIVIL GENERAL NOTES",
+                    CIVIL_GENERAL_NOTES, nc["w"] - 0.5, size=NT)
+    ab = [("AC", "ACRE"), ("AD", "AREA DRAIN"), ("B.O.C.", "BACK OF CURB"), ("BM", "BENCHMARK"),
+          ("CB", "CATCH BASIN"), ("CI", "CURB INLET"), ("CO", "CLEANOUT"), ("CL", "CENTERLINE"),
+          ("CU", "COPPER"), ("DBH", "DIAMETER AT BREAST HEIGHT"), ("DIP", "DUCTILE IRON PIPE"),
+          ("DS", "DOWNSPOUT"), ("EX.", "EXISTING"), ("FFE", "FINISHED FLOOR ELEVATION"),
+          ("FG", "FINISH GRADE"), ("HMA", "HOT-MIX ASPHALT"), ("HP", "HIGH POINT"), ("INV", "INVERT"),
+          ("IUM", "ILLINOIS URBAN MANUAL"), ("LOW", "LIMIT OF WORK"), ("ME", "MATCH EXISTING"),
+          ("MH", "MANHOLE"), ("MJ", "MECHANICAL JOINT"), ("PCC", "PORTLAND CEMENT CONCRETE"),
+          ("PL", "PROPERTY LINE"), ("RL", "ROOF LEADER"), ("R.O.W.", "RIGHT-OF-WAY"),
+          ("SF", "SILT FENCE / SQUARE FEET"), ("SMH", "SANITARY MANHOLE"), ("STA", "STATION"),
+          ("TC", "TOP OF CURB"), ("TPF", "TREE PROTECTION FENCE"), ("TS", "TOP OF STOOP / SLAB"),
+          ("TS&V", "TAPPING SLEEVE & VALVE"), ("TW", "TOP OF WALK"), ("TYP.", "TYPICAL"),
+          ("WM", "WATER MAIN"), ("YI", "YARD INLET")]
+    ay = nc["y"] + nc["h"] - 0.25 - h - 0.3
+    sh.text((nc["x"] + 0.25, ay), "CIVIL ABBREVIATIONS", size=TXT["label"], font=FONT_B, valign="top",
+            underline=True)
+    ncol = 4
+    per = math.ceil(len(ab) / ncol)
+    colw = (nc["w"] - 0.5) / ncol
+    for k, (a_, d_) in enumerate(ab):
+        cx_ = nc["x"] + 0.25 + (k // per) * colw
+        cy_ = ay - 0.28 - (k % per) * 0.15
+        sh.text((cx_, cy_), a_, size=NT - 0.4, font=FONT_B, valign="top")
+        sh.text((cx_ + 0.62, cy_), d_, size=NT - 0.4, valign="top")
+    ry = ay - 0.28 - per * 0.15 - 0.2
+    rows = [["C-100", "EXISTING CONDITIONS & SITE DEMOLITION PLAN", "AD101 (BUILDING DEMOLITION)"],
+            ["C-200", "SITE LAYOUT & PAVING PLAN", "A-101, A-312 (LINK CURB), A-501"],
+            ["C-300", "GRADING & EROSION CONTROL PLAN (SWPPP)", "S-301 (FOOTINGS / GRADE AT BLDG.)"],
+            ["C-400", "SITE UTILITY PLAN, PROFILES, STRUCTURE TABLE", "A-103 (ROOF DRAINS), S-301"],
+            ["C-500", "CIVIL DETAILS", "-"]]
+    table(sh, nc["x"] + 0.25, ry, [("SHEET", 0.7), ("CONTENTS", 4.3), ("RELATED SHEETS", 3.4)], rows,
+          row_h=0.17, size=NT - 0.6, title="CIVIL SHEET INDEX", align=["c", "l", "l"])
 
 
 # ========================================================================================

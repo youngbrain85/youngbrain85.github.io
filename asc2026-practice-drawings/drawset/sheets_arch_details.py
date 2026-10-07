@@ -622,7 +622,7 @@ def det_wa_head(sh, c):
     rigid(v, 0, 0, 0, 0, pts=[(XA1, yfl(XA1) + 0.12), (7.5, yfl(7.5) + 0.12), (7.5, top), (XA1, top)])
     # CMU: bond beam lintel (2 courses) + hollow units; MO = bottom of lintel units
     cmu_courses(v, XC0, XC1, 0.0, top, 0.0, joint="top", bond=(0, 1),
-                bars={0: [9.9, 12.95], 1: [9.9, 12.95]})
+                bars={0: [9.9, 12.95]})
     flashing(v, [(-0.32, 0.12), (-0.55, 0.36), (3.69, 0.36), (3.69, 5.1), (7.55, 8.2),
                  (7.55, 13.5)])
     R(v, 7.55, 12.6, 7.85, 13.6, lw="fine", fill="black")
@@ -661,11 +661,11 @@ def det_wa_head(sh, c):
         ((5.6, 6.65), "THRU-WALL FLASHING W/ SS DRIP EDGE, LAP 8\" UP CMU + TERM. BAR; END DAMS EA. END"),
         ((1.8, 4.2), "FB-2 SOLDIER COURSE (8\")"),
         ((1.4, 0.7), "WEEP VENTS @ 24\" O.C."),
-        ((1.8, 0.16), "L5x3 1/2x5/16 LLV GALV. LOOSE LINTEL, 8\" BRG. EA. END (S-302)"),
+        ((1.8, 0.16), "BL-2: L5x3 1/2x5/16 LLV GALV. LOOSE LINTEL, 8\" BRG. EA. END (S-302)"),
         ((FR0 + 0.15, -0.25), "SEALANT + BACKER ROD"),
     ], xl, "l", 1.38, ylo, yhi)
     notes_col(sh, v, [
-        ((13.0, 12.0), "8\" CMU BOND BEAM LINTEL, 2 COURSES, GROUT SOLID, (2) #5 EA. COURSE (S-302)"),
+        ((13.0, 12.0), "CL-2: 16\" CMU BOND BEAM LINTEL (2 COURSES), (2) #5 BOT., GROUT SOLID (S-302)"),
         ((7.7, 19.0), "FLUID-APPLIED AIR / WATER BARRIER, TURN 2\" ONTO SOFFIT"),
         ((6.4, 0.75), "2x4 PT WOOD BLOCKING (RIPPED), ANCHOR @ 16\" O.C."),
         ((6.4, 3.4), "CLOSED-CELL SPRAY FOAM FILL"),
@@ -688,7 +688,9 @@ def jamb_plan(sh, c, num, ttl, kind="W-A"):
     u0 = -7.2
     brick_plan(v, u0, 0.0, 0.0, XB1, start=-23.625)
     rigid(v, u0, XA1, -1.56, XC0)
-    cmu_plan(v, u0, 0.0, XC0, XC1, start=-15.625, grout_cores={1}, bars={1}, end_bullnose="r")
+    cmu_plan(v, u0, 0.0, XC0, XC1, start=-15.625, grout_cores={1}, bars=set(), end_bullnose="r")
+    bar_dot(v, -5.2, 11.4375)
+    bar_dot(v, -3.0, 11.4375)
     air_barrier(v, [(u0, XC0 + 0.05), (-1.5, XC0 + 0.05)])
     wood(v, -1.5, 4.125, 0.0, XC0)
     v.polyline([(-4.0, XC0 - 0.07), (-1.57, XC0 - 0.07), (-1.57, 4.06), (0.07, 4.06),
@@ -734,7 +736,7 @@ def jamb_plan(sh, c, num, ttl, kind="W-A"):
         blk = "2x4 PT WOOD BLOCKING (CAVITY CLOSURE) FULL HEIGHT (9'-4\"), ANCHOR @ 12\" O.C."
     notes_col(sh, v, [
         ((-6.0, 12.5), "8\" CMU; BULLNOSE JAMB UNITS; PNT-1"),
-        ((-4.1, 11.3), "GROUT JAMB CELL SOLID W/ (1) #5 VERT. FULL HEIGHT (S-SERIES)"),
+        ((-4.1, 11.3), "GROUT JAMB CELL SOLID W/ (2) #5 VERT. FULL HEIGHT (S-302)"),
         ((-6.5, XC0 + 0.05), "FLUID-APPLIED AIR / WATER BARRIER"),
         ([(-3.0, XC0 - 0.07), (0.07, 8.9)], "SELF-ADHERED TRANSITION MEMBRANE, WRAP BLOCKING, LAP 2\" ONTO CMU RETURN"),
         ((-0.75, 5.6), blk),
@@ -768,7 +770,7 @@ def det_wa_sill(sh, c):
     # brick below (coursing adjusted to the cast stone bed)
     brick_courses(v, 0, XB1, bot, -4.375, -4.375)
     rigid(v, XA1, bot, XC0, -3.0)
-    cmu_courses(v, XC0, XC1, bot, 0.0, 0.0, joint="bot", bond=(-1,), bars={-1: [XG]})
+    cmu_courses(v, XC0, XC1, bot, 0.0, 0.0, joint="bot")
     air_barrier(v, [(7.7, bot), (7.7, -3.05)])
     veneer_anchor(v, -7.81, -7.0)
     # CS-1 cast stone sill: 4" high at back, 3 1/2" at face, 1" projection, drip
@@ -820,7 +822,7 @@ def det_wa_sill(sh, c):
         ((6.0, -0.75), "(2) 2x4 PT WOOD BLOCKING, ANCHOR @ 16\" O.C."),
         ((13.0, 2.0), "3/4\" SOLID SURFACE STOOL, 3/4\" OVERHANG, EASED EDGES"),
         ((13.5, 0.8), "2x8 FRT WOOD BLOCKING, ANCHOR @ 16\" O.C."),
-        ((11.0, -4.0), "8\" CMU, TOP COURSE BOND BEAM W/ (1) #5"),
+        ((11.0, -4.0), "8\" CMU BELOW SILL, PNT-1 (S-302)"),
         ((7.7, -10.0), "AIR / WATER BARRIER"),
     ], xr, "r", 1.33, ylo, yhi)
     dtitle(sh, c, 3, "W-A WINDOW SILL", sft, note="SILL 102'-8\" (L1) / 116'-8\" (L2)")
@@ -828,19 +830,19 @@ def det_wa_sill(sh, c):
 
 # ---------------------------------------------------------------------------------------- 4
 def det_sf1_head(sh, c):
-    """SF-1 storefront head. y = 0 at head (MO) 109'-4"."""
+    """SF-1 storefront head. y = 0 at head (MO) 109'-4". CL-3 + BL-3 per S-302 lintel schedule."""
     sft = 1.5
     ext = (-0.8, -11.6, 20.6, 26.4)
     v, xl, xr, ylo, yhi = setup(sh, c, ext, sft, wl=1.38, wr=1.33)
     top = 25.0
     brick_courses(v, 0, XB1, 0.0, top, 0.0)
-    angle(v, (4.125, 0.0), 3.5, 6.0, 0.375, dx=-1, dy=1)
+    angle(v, (4.125, 0.0), 4.0, 6.0, 0.375, dx=-1, dy=1)
     wood(v, 4.1875, 0.0, XC0, 1.5)
     yfl = lambda x: 6.1 + (9.2 - 6.1) / (7.55 - 3.69) * (x - 3.69)
     rigid(v, 0, 0, 0, 0, pts=[(4.19, 1.5), (7.5, 1.5), (7.5, yfl(7.5)), (4.19, yfl(4.19))])
     rigid(v, 0, 0, 0, 0, pts=[(XA1, yfl(XA1) + 0.12), (7.5, yfl(7.5) + 0.12), (7.5, top), (XA1, top)])
-    cmu_courses(v, XC0, XC1, 0.0, top, 0.0, joint="top", bond=(0, 1),
-                bars={0: [9.9, 12.95], 1: [9.9, 12.95]})
+    cmu_courses(v, XC0, XC1, 0.0, top, 0.0, joint="top", bond=(0, 1, 2),
+                bars={0: [9.9, 12.95], 2: [9.9, 12.95]})
     flashing(v, [(-0.32, 0.17), (-0.55, 0.42), (3.69, 0.42), (3.69, 6.1), (7.55, 9.2),
                  (7.55, 14.5)])
     R(v, 7.55, 13.6, 7.85, 14.6, lw="fine", fill="black")
@@ -864,8 +866,8 @@ def det_sf1_head(sh, c):
     brk(v, (18.2, 0.9), (18.2, 3.8))
     brk(v, (-0.6, top), (XC1 + 0.6, top))
     v.dimi((XC1, 0.0), (XC1, 2.0), -2.2, text="2\"")
-    v.dimi((19.6, 0.0), (19.6, 16.0), -0.01, text="1'-4\" LINTEL", ext=False)
-    v.line((XC1 + 0.3, 16.0), (20.3, 16.0), lw="hair")
+    v.dimi((19.6, 0.0), (19.6, 24.0), -0.01, text="2'-0\" LINTEL", ext=False)
+    v.line((XC1 + 0.3, 24.0), (20.3, 24.0), lw="hair")
     v.line((XC1 + 0.3, 0.0), (20.3, 0.0), lw="hair")
     v.dimi((FR0, -0.5), (FR1, -0.5), -10.3)
     v.dimi((0.0, -0.5), (FR0, -0.5), -10.3)
@@ -876,11 +878,11 @@ def det_sf1_head(sh, c):
         ((6.6, 22.0), "2\" POLYISO CAVITY INSULATION"),
         ((5.6, 7.75), "THRU-WALL FLASHING W/ SS DRIP EDGE, END DAMS, LAP 8\" UP CMU + TERM. BAR"),
         ((1.4, 1.3), "WEEP VENTS @ 24\" O.C."),
-        ((1.8, 0.2), "L6x3 1/2x3/8 LLV GALV. LOOSE LINTEL, 8\" BRG. EA. END (S-302)"),
+        ((1.8, 0.2), "BL-3: L6x4x3/8 LLV GALV. LOOSE LINTEL, 12\" BRG. EA. END (S-302)"),
         ((FR0 + 0.1, -0.25), "SEALANT + BACKER ROD"),
     ], xl, "l", 1.38, ylo, yhi)
     notes_col(sh, v, [
-        ((13.0, 12.0), "8\" CMU BOND BEAM LINTEL, 2 COURSES, GROUT SOLID, (2) #5 EA. COURSE (S-302)"),
+        ((13.0, 12.0), "CL-3: 24\" CMU BOND BEAM LINTEL (3 COURSES), (2) #5 BOT. + (2) #4 TOP, GROUT SOLID (S-302)"),
         ((7.7, 19.0), "FLUID-APPLIED AIR / WATER BARRIER"),
         ((6.4, 0.75), "2x4 PT WOOD BLOCKING (RIPPED), ANCHOR @ 16\" O.C."),
         ((6.4, 3.6), "CLOSED-CELL SPRAY FOAM FILL"),
@@ -894,141 +896,147 @@ def det_sf1_head(sh, c):
 
 # ---------------------------------------------------------------------------------------- 5
 def det_sf1_sill(sh, c):
-    """SF-1 sill & threshold at the entrance pair. y = 0 at FFE 100'-0"."""
+    """SF-1 sill & threshold at the entrance pair. y = 0 at FFE 100'-0".
+    Walk 1/2" below FFE (A-201 keynote 6); slab recessed 1/2" under the threshold so the
+    threshold top is flush with the interior floor (ADA: 1/2" max. above the walk)."""
     sft = 1.5
     ext = (-4.5, -21.5, 22.5, 17.0)
     v, xl, xr, ylo, yhi = setup(sh, c, ext, sft, wl=1.4, wr=1.4)
     bot = -20.0
-    xf = -0.375
-    # foundation wall (no brick ledge at the door opening) and slab
-    concrete(v, [(xf, bot), (15.625, bot), (15.625, -5.0), (xf, -5.0)], seed=4)
-    concrete(v, [(xf, -5.0), (22.5, -5.0), (22.5, -0.25), (7.5, -0.25), (7.5, 0.0), (xf, 0.0)], seed=5)
-    # vapor retarder, base, perimeter insulation
-    rigid(v, 15.625, bot, 17.625, -5.0)
-    gravel(v, [(17.625, -11.0), (22.5, -11.0), (22.5, -5.0), (17.625, -5.0)])
-    v.line((17.625, -5.05), (22.5, -5.05), lw="med", dash=[4, 1.5])
-    earth(v, [(17.625, bot), (22.5, bot), (22.5, -11.0), (17.625, -11.0)])
-    # exterior walk, isolation joint
-    concrete(v, [(-4.5, -5.0), (xf - 0.5, -5.0), (xf - 0.5, 0.0), (-4.5, -0.14)], seed=6)
-    gravel(v, [(-4.5, -9.0), (xf, -9.0), (xf, -5.0), (-4.5, -5.0)])
-    earth(v, [(-4.5, bot), (xf, bot), (xf, -9.0), (-4.5, -9.0)])
-    R(v, xf - 0.5, -5.0, xf, -0.5, lw="fine", fill="g20")
-    bead(v, [(xf - 0.5, 0.0), (xf, 0.0), (xf, -0.45), (xf - 0.5, -0.45)])
-    v.polyline([(xf, bot), (xf, -5.0)], lw="med", dash=[1.5, 1])
+    xf = -0.0625                       # face of foundation wall (S-301)
+    fi = 15.9375                       # interior face of foundation wall
+    concrete(v, [(xf, bot), (fi, bot), (fi, -5.0), (xf, -5.0)], seed=4)
+    # slab: recessed 1/2" under threshold (x 0.5 .. 8.0), WOM-1 recess 1/4" inboard
+    concrete(v, [(xf, -5.0), (22.5, -5.0), (22.5, -0.25), (8.0, -0.25), (8.0, -0.5), (0.5, -0.5),
+                 (0.5, 0.0), (xf, 0.0)], seed=5)
+    rigid(v, fi, bot, fi + 2.0, -5.0)
+    gravel(v, [(fi + 2.0, -11.0), (22.5, -11.0), (22.5, -5.0), (fi + 2.0, -5.0)])
+    v.line((fi, -5.05), (22.5, -5.05), lw="med", dash=[4, 1.5])
+    earth(v, [(fi + 2.0, bot), (22.5, bot), (22.5, -11.0), (fi + 2.0, -11.0)])
+    # exterior walk 1/2" below FFE, isolation joint
+    concrete(v, [(-4.5, -5.5), (xf - 0.5, -5.5), (xf - 0.5, -0.5), (-4.5, -0.6)], seed=6)
+    gravel(v, [(-4.5, -9.5), (xf, -9.5), (xf, -5.5), (-4.5, -5.5)])
+    earth(v, [(-4.5, bot), (xf, bot), (xf, -9.5), (-4.5, -9.5)])
+    R(v, xf - 0.5, -5.5, xf, -0.95, lw="fine", fill="g20")
+    bead(v, [(xf - 0.5, -0.5), (xf, -0.5), (xf, -0.95), (xf - 0.5, -0.95)])
+    v.polyline([(xf, bot), (xf, -5.5)], lw="med", dash=[1.5, 1])
     # WOM-1 recessed walk-off carpet tile
-    R(v, 7.5, -0.25, 22.5, 0.0, lw="fine", fill="white", hatch="carpet")
-    # threshold (ADA, 1/2" max, 1:2 bevels) set in sealant
-    bead(v, [(1.4, -0.04), (7.6, -0.04), (7.6, 0.0), (1.4, 0.0)])
-    alum(v, [(1.5, 0.0), (2.5, 0.5), (6.5, 0.5), (7.5, 0.0)])
-    for xx in (3.0, 6.0):
-        v.line((xx, 0.45), (xx, -2.0), lw="med")
+    R(v, 8.0, -0.25, 22.5, 0.0, lw="fine", fill="white", hatch="carpet")
+    # threshold (ADA, 1/2" high, 1:2 bevels) set in sealant in the recess
+    bead(v, [(0.6, -0.54), (7.9, -0.54), (7.9, -0.5), (0.6, -0.5)])
+    alum(v, [(0.6, -0.5), (1.6, 0.0), (6.9, 0.0), (7.9, -0.5)])
+    for xx in (2.6, 5.9):
+        v.line((xx, -0.05), (xx, -2.4), lw="med")
     # door bottom rail + sweep + glass
-    alum(v, [(4.5, 0.75), (6.25, 0.75), (6.25, 10.75), (4.5, 10.75)])
-    R(v, 4.62, 0.5, 6.13, 0.75, lw="fine", fill="g60")
-    glass_v(v, 5.375, 10.75, 15.6, t=0.5, lite=0.2)
+    alum(v, [(4.5, 0.25), (6.25, 0.25), (6.25, 10.25), (4.5, 10.25)])
+    R(v, 4.62, 0.0, 6.13, 0.25, lw="fine", fill="g60")
+    glass_v(v, 5.375, 10.25, 15.6, t=0.5, lite=0.2)
     brk(v, (3.7, 15.6), (7.0, 15.6))
-    # jamb beyond (dashed)
     for (a, b) in ((0.0, XB1), (XC0, XC1)):
         v.polyline([(a, 15.6), (a, 0.0), (b, 0.0), (b, 15.6)], lw="fine", dash=[2, 1.5])
     brk(v, (-4.0, bot), (22.0, bot))
     brk(v, (22.5, -11.5), (22.5, 0.6))
-    # dims
-    v.dimi((1.5, 0.5), (7.5, 0.5), 3.2, text="6\"")
     v.dimi((21.5, -5.0), (21.5, 0.0), -0.01, text="5\"", ext=False)
     v.dimi((21.5, -11.0), (21.5, -5.0), -0.01, text="6\"", ext=False)
-    v.dimi((xf, bot + 2), (15.625, bot + 2), 1.0, text="1'-0\"")
+    v.dimi((xf, bot + 2), (fi, bot + 2), 1.0, text="1'-4\"")
+    v.dimi((-3.0, -0.55), (-3.0, 0.0), 0.01, text="1/2\"", ext=False)
+    v.line((-3.6, 0.0), (0.4, 0.0), lw="hair")
     notes_col(sh, v, [
         ((5.4, 13.0), "SF-1 ALUM. ENTRANCE DOOR, MEDIUM STILE, 10\" BOTTOM RAIL (HW-7)"),
-        ((5.4, 0.62), "BRUSH SWEEP / DOOR BOTTOM SEAL"),
-        ((2.0, 0.28), "ALUM. THRESHOLD 6\" x 1/2\" MAX., 1:2 BEVELS, SET IN SEALANT, SS SCREWS IN ANCHORS (ADA)"),
-        ((-2.5, -0.4), "CONC. WALK FLUSH W/ FFE AT DOOR, SLOPE AWAY 1:50 MAX. (CIVIL)"),
-        ((xf - 0.25, -0.2), "1/2\" ISOLATION JOINT + SEALANT"),
-        ((-2.5, -7.0), "CA-6 BASE"),
-        ((xf, -12.0), "DAMPPROOFING"),
-    ], xl, "l", 1.45, ylo, yhi)
+        ((5.4, 0.12), "BRUSH SWEEP / DOOR BOTTOM SEAL"),
+        ((1.2, -0.3), "ALUM. THRESHOLD 6\" x 1/2\", 1:2 BEVELS, SET IN SEALANT IN 1/2\" SLAB RECESS, SS SCREWS IN ANCHORS (ADA)"),
+        ((-2.5, -0.6), "CONC. WALK 1/2\" BELOW FFE, SLOPE AWAY 1/8\" PER FT (CIVIL)"),
+        ((xf - 0.25, -0.75), "1/2\" ISOLATION JOINT + SEALANT"),
+        ((-2.5, -7.5), "CA-6 BASE"),
+        ((xf, -14.0), "DAMPPROOFING"),
+    ], xl, "l", 1.4, ylo, yhi)
     notes_col(sh, v, [
         ((1.8, 9.0), "BRICK / CMU JAMB BEYOND"),
         ((17.0, -0.12), "WOM-1 WALK-OFF CARPET TILE IN 1/4\" SLAB DEPRESSION"),
         ((12.0, -2.5), "5\" SLAB ON GRADE, 4,000 PSI, WWF 6x6-W2.9xW2.9"),
         ((20.0, -5.05), "15 MIL VAPOR RETARDER"),
         ((20.0, -8.5), "6\" CA-6 BASE"),
-        ((16.6, -14.0), "2\" XPS PERIMETER INSULATION (SEE 10)"),
-        ((8.0, -15.0), "CONC. FOUNDATION WALL, TOP STEPPED AT DOOR (S-301)"),
-    ], xr, "r", 1.45, ylo, yhi)
+        ((fi + 1.0, -14.0), "2\" XPS PERIMETER INSULATION x 2'-0\" (SEE 10)"),
+        ((8.0, -15.0), "CONC. FOUNDATION WALL, NO BRICK LEDGE AT DOOR (S-301)"),
+    ], xr, "r", 1.4, ylo, yhi)
     dtitle(sh, c, 5, "SF-1 SILL & THRESHOLD", sft, note="FFE 100'-0\"; ENTRANCE PAIR 100B")
 
 
 # ---------------------------------------------------------------------------------------- 7
 def det_sf3(sh, c):
-    """SF-3 link storefront: head (top) and sill at 8" concrete curb (bottom), break between."""
+    """SF-3 link storefront: head on HSS8x8 head beam (S-302 13) and sill on the 8" concrete
+    curb (S-301 8); the two halves are separated by a break."""
     sft = 1.5
     s = sft / 12.0
-    F0, F1 = 3.625, 8.125          # SF-3 frame zone (centered on the 12" curb)
+    F0, F1 = 4.75, 9.25            # SF-3 frame zone, set back past the 3/4" curb chamfer
+    HX0 = XG - 4.0                 # exterior face of HSS8x8 (on grid)
     wl, wr = 1.25, 1.25
     xl = c["x"] + 0.1 + wl
     xr = c["x"] + c["w"] - 0.1 - wr
     ex0, ex1 = -2.0, 17.8
     ox = xl + 0.24 + ((xr - 0.24) - (xl + 0.24) - (ex1 - ex0) * s) / 2
-    # head view: y 0 = head 109'-4"; model y -6 .. 20
     top_y = c["y"] + c["h"] - 0.2
     vh = DV(sh.c, ox, top_y - 26.0 * s, sft, ex0, -6.0)
-    # sill view: y 0 = sill 100'-0" (top of curb); model y -15 .. 8
     vs = DV(sh.c, ox, c["y"] + 0.85, sft, ex0, -15.0)
     # ---- head ----
     v = vh
     tp = 19.0
-    R(v, 0.625, 0.0, 15.125, 0.375, lw="fine", fill="black")          # PL 3/8 x 14 1/2
-    wshape(v, XG, 0.375 + 8.14, 8.14, 5.25, 0.33, 0.23)                 # W8x18
+    R(v, HX0, 0.0, HX0 + 8.0, 8.0, lw="thin", fill="black")
+    R(v, HX0 + 0.5, 0.5, HX0 + 7.5, 7.5, lw="fine", fill="white")
+    angle(v, (HX0, 0.0), 7.0, 4.0, 0.375, dx=-1, dy=1)
     brick_courses(v, 0, XB1, 0.375, tp, 0.375)
-    cmu_courses(v, XC0, XC1, 8.875, tp, 8.5, joint="bot")
-    yfl = lambda x: 5.0 + (9.6 - 5.0) / (7.55 - 3.69) * (x - 3.69)
-    rigid(v, 0, 0, 0, 0, pts=[(3.75, 0.375), (8.78, 0.375), (8.78, 8.515), (7.5, 8.515),
-                               (7.5, yfl(7.5)), (3.75, yfl(3.75))])
-    rigid(v, 0, 0, 0, 0, pts=[(XA1, yfl(XA1) + 0.12), (7.5, yfl(7.5) + 0.12), (7.5, tp), (XA1, tp)])
-    flashing(v, [(-0.32, 0.2), (-0.55, 0.45), (3.69, 0.45), (3.69, 5.0), (7.55, 9.6), (7.55, 15.0)])
-    R(v, 7.55, 14.1, 7.85, 15.1, lw="fine", fill="black")
-    air_barrier(v, [(7.7, tp), (7.7, 9.0)])
+    cmu_courses(v, XC0, XC1, 8.0, tp, 8.0, joint="bot")
+    yfl = lambda x: 4.6 + (5.2 - 4.6) / (HX0 - 0.1 - 5.6) * (x - 5.6)
+    rigid(v, 0, 0, 0, 0, pts=[(XA1, 0.45), (HX0 - 0.45, 0.45), (HX0 - 0.45, 4.2), (XA1, 4.2)])
+    rigid(v, 0, 0, 0, 0, pts=[(XA1, 5.3), (HX0 - 0.05, 5.3), (HX0 - 0.05, 8.0), (7.5, 8.0), (7.5, tp),
+                               (XA1, tp)])
+    flashing(v, [(-0.32, 0.2), (-0.55, 0.45), (5.5, 0.45), (5.5, 4.7), (HX0 - 0.03, 4.7),
+                 (HX0 - 0.03, 8.0), (7.55, 8.0), (7.55, 12.0)])
+    R(v, 7.55, 11.1, 7.85, 12.1, lw="fine", fill="black")
+    air_barrier(v, [(7.7, tp), (7.7, 8.1)])
     v.polyline([(F0 - 0.05, -1.6), (F0 - 0.05, -0.05), (F1 + 0.05, -0.05), (F1 + 0.05, -1.6)], lw="med")
-    alum(v, [(F0 + 0.12, -0.8), (F1 - 0.12, -0.8), (F1 - 0.12, -2.8), (6.65, -2.8), (6.65, -1.55),
-             (5.1, -1.55), (5.1, -2.8), (F0 + 0.12, -2.8)])
-    tbreak(v, 5.7, -1.55, 6.05, -0.8)
-    glass_v(v, 5.875, -6.0, -1.85)
-    brk(v, (2.8, -6.0), (9.0, -6.0))
+    alum(v, [(F0 + 0.12, -0.8), (F1 - 0.12, -0.8), (F1 - 0.12, -2.8), (7.65, -2.8), (7.65, -1.55),
+             (6.1, -1.55), (6.1, -2.8), (F0 + 0.12, -2.8)])
+    tbreak(v, 6.7, -1.55, 7.05, -0.8)
+    glass_v(v, 6.875, -6.0, -1.85)
+    brk(v, (3.8, -6.0), (10.0, -6.0))
     sealant_v(v, -0.45, 0.0, F0 - 0.05, 0.4, right=True, rod_r=0.22)
     sealant_v(v, -0.45, 0.0, F1 + 0.05, 0.4, right=False, rod_r=0.22)
-    R(v, 15.125, 2.0, 18.0, 2.625, lw="thin", fill="g10")
+    R(v, HX0 + 8.0, 2.0, 17.8, 2.625, lw="thin", fill="g10")
     brk(v, (-0.5, tp), (XC1 + 0.5, tp))
-    brk(v, (18.0, 0.8), (18.0, 3.8))
+    brk(v, (17.8, 0.8), (17.8, 3.8))
     # ---- sill ----
     v = vs
     bt = -14.0
-    concrete(v, [(3.25, bt), (15.25, bt), (15.25, 0.0), (3.25, 0.0)], seed=9)
-    earth(v, [(-2.0, bt), (3.25, bt), (3.25, -8.0), (-2.0, -8.15)])
-    v.line((-2.0, -8.15), (3.25, -8.0), lw="thin")
-    v.polyline([(3.25, bt), (3.25, -8.0)], lw="med", dash=[1.5, 1])
-    R(v, 15.25, -5.0, 15.75, -0.4, lw="fine", fill="g20")
-    bead(v, [(15.25, 0.0), (15.75, 0.0), (15.75, -0.4), (15.25, -0.4)])
-    concrete(v, [(15.75, -5.0), (18.0, -5.0), (18.0, 0.0), (15.75, 0.0)], seed=10)
-    rigid(v, 15.25, bt, 17.25, -5.0)
-    R(v, 8.6, 0.0, 18.0, 0.125, lw="fine", fill="g40")
-    flashing(v, [(3.25, -0.6), (3.25, 0.04), (8.45, 0.04), (8.45, 1.4)], lw=1.0)
-    alum(v, [(F0, 0.5), (F1, 0.5), (F1, 2.5), (6.65, 2.5), (6.65, 1.25), (5.1, 1.25), (5.1, 2.5),
+    cx0, cx1 = 3.9375, 15.9375      # 12" curb / foundation wall (S-301)
+    concrete(v, [(cx0, bt), (cx1, bt), (cx1, 0.0), (cx0 + 0.75, 0.0), (cx0, -0.75)], seed=9)
+    earth(v, [(-2.0, bt), (cx0, bt), (cx0, -8.0), (-2.0, -8.15)])
+    v.line((-2.0, -8.15), (cx0, -8.0), lw="thin")
+    v.polyline([(cx0, bt), (cx0, -8.0)], lw="med", dash=[1.5, 1])
+    R(v, cx1, -5.0, cx1 + 0.5, -0.4, lw="fine", fill="g20")
+    bead(v, [(cx1, 0.0), (cx1 + 0.5, 0.0), (cx1 + 0.5, -0.4), (cx1, -0.4)])
+    rigid(v, cx1 + 0.5, -5.0, cx1 + 1.5, -0.6)
+    concrete(v, [(cx1 + 1.5, -5.0), (17.8, -5.0), (17.8, 0.0), (cx1 + 1.5, 0.0)], seed=10)
+    rigid(v, cx1, bt, cx1 + 1.86, -5.0)
+    R(v, 9.6, 0.0, 17.8, 0.125, lw="fine", fill="g40")
+    flashing(v, [(cx0 + 0.55, -0.15), (cx0 + 0.75, 0.04), (9.45, 0.04), (9.45, 1.4)], lw=1.0)
+    alum(v, [(F0, 0.5), (F1, 0.5), (F1, 2.5), (7.65, 2.5), (7.65, 1.25), (6.1, 1.25), (6.1, 2.5),
              (F0, 2.5)])
-    tbreak(v, 5.7, 0.5, 6.05, 1.25)
-    glass_v(v, 5.875, 2.75, 8.0)
-    R(v, 5.1, 2.5, 5.375, 3.25, lw="fine", fill="black")
-    R(v, 6.375, 2.5, 6.65, 3.25, lw="fine", fill="black")
-    brk(v, (2.9, 8.0), (9.0, 8.0))
-    R(v, 4.4, 0.04, 4.9, 0.5, lw="fine", fill="black")
-    v.line((7.3, 0.6), (7.3, -2.2), lw="med")
+    tbreak(v, 6.7, 0.5, 7.05, 1.25)
+    glass_v(v, 6.875, 2.75, 8.0)
+    R(v, 6.1, 2.5, 6.375, 3.25, lw="fine", fill="black")
+    R(v, 7.375, 2.5, 7.65, 3.25, lw="fine", fill="black")
+    brk(v, (3.9, 8.0), (10.0, 8.0))
+    R(v, 5.4, 0.04, 5.9, 0.5, lw="fine", fill="black")
+    v.line((8.3, 0.6), (8.3, -2.2), lw="med")
     sealant_v(v, 0.04, 0.5, F0, 0.35, right=True, rod_r=0.2)
     sealant_v(v, 0.04, 0.5, F1, 0.3, right=False, rod_r=0.2)
-    brk(v, (2.7, bt), (17.5, bt))
-    brk(v, (18.0, -5.5), (18.0, 0.6))
-    vs.dimi((3.25, -8.0), (3.25, 0.0), 1.6, text="8\"")
-    vs.dimi((3.25, bt + 1.5), (15.25, bt + 1.5), 0.6, text="1'-0\"")
+    brk(v, (3.4, bt), (17.5, bt))
+    brk(v, (17.8, -5.5), (17.8, 0.6))
+    vs.dimi((cx0, -8.0), (cx0, 0.0), 1.6, text="8\"")
+    vs.dimi((cx0, bt + 1.5), (cx1, bt + 1.5), 0.6, text="1'-0\"")
     # compressed MO dimension between head and sill views (paper space)
-    xd = vs.to_paper((-1.6, 0))[0]
+    xd = vs.to_paper((-1.4, 0))[0]
     ya = vs.to_paper((0, 0.0))[1]
     yb = vh.to_paper((0, 0.0))[1]
     sh.line((xd, ya - 0.05), (xd, yb + 0.05), lw="fine")
@@ -1043,68 +1051,65 @@ def det_sf3(sh, c):
     yh_lo = vh.to_paper((0, -6.0))[1]
     notes_col(sh, vh, [
         ((1.8, 12.0), "FB-1 FACE BRICK"),
-        ((5.6, 7.3), "THRU-WALL FLASHING W/ SS DRIP, END DAMS, LAP 8\" UP CMU"),
-        ((5.0, 3.0), "SPRAY FOAM FILL AT LINTEL"),
-        ((2.5, 0.19), "PL 3/8\" x 14 1/2\" WELDED TO W8x18 STEEL LINTEL (S-302)"),
+        ((5.5, 3.0), "THRU-WALL FLASHING W/ SS DRIP, END DAMS, LAP UP HSS + CMU, TERM. BAR"),
+        ((2.5, 0.19), "L7x4x3/8 LLH CONT., WELDED TO HSS (S-302)"),
         ((F0, -0.25), "SEALANT + BACKER ROD"),
     ], xl, "l", wl, yh_lo, top_y)
     notes_col(sh, vh, [
-        ((13.0, 13.0), "8\" CMU"),
-        ((XG + 1.2, 4.0), "W8x18 LINTEL BEAM (S-302)"),
+        ((13.0, 13.0), "8\" CMU ON HSS"),
+        ((HX0 + 6.0, 6.0), "HSS8x8x1/2 HEAD BEAM ON GRID, T.O.S. 110'-0\" (S-302)"),
+        ((6.6, 6.6), "2\" POLYISO"),
         ((17.0, 2.3), "ACT-1 CEILING 9'-6\" AFF"),
-        ((F1 + 0.05, -1.0), "HEAD RECEPTOR, 3/4\" DEFLECTION, FASTEN TO PL @ 12\" O.C."),
-        ((6.5, -4.0), "SF-3 STOREFRONT, 1\" INSUL. LOW-E TEMPERED (A-711)"),
+        ((F1 + 0.05, -1.0), "HEAD RECEPTOR, 1/2\" DEFLECTION, FASTEN @ 12\" O.C."),
+        ((7.6, -4.0), "SF-3 STOREFRONT, 1\" INSUL. LOW-E TEMPERED (A-711)"),
     ], xr, "r", wr, yh_lo, top_y)
     ys_hi = vs.to_paper((0, 8.0))[1] + 0.25
     notes_col(sh, vs, [
         ((F0 + 0.1, 0.27), "SEALANT W/ WEEP GAPS AT FRAME WEEPS"),
-        ((3.25, -0.3), "SELF-ADHERED SILL PAN, END DAMS, BACK LEG UP"),
-        ((3.25, -4.0), "8\" EXPOSED CONC. CURB, SMOOTH FORM FINISH, CHAMFER EDGES"),
+        ((cx0 + 0.6, -0.1), "SELF-ADHERED SILL PAN, END DAMS, BACK LEG UP"),
+        ((cx0, -4.0), "8\" EXPOSED CONC. CURB, 3/4\" CHAMFER, RUBBED FINISH (S-301)"),
         ((0.0, -11.0), "FINISH GRADE 99'-4\""),
     ], xl, "l", wl, c["y"] + 0.75, ys_hi)
     notes_col(sh, vs, [
-        ((6.0, 1.9), "SF-3 SILL 2\" x 4 1/2\""),
-        ((7.3, -1.2), "3/8\" SS SCREW ANCHORS @ 16\" O.C. SET IN SEALANT"),
+        ((7.0, 1.9), "SF-3 SILL 2\" x 4 1/2\""),
+        ((8.3, -1.2), "3/8\" SS SCREW ANCHORS @ 16\" O.C. SET IN SEALANT"),
         ((12.0, 0.08), "LVT-1 TO FRAME"),
-        ((15.5, -2.5), "1/2\" ISOLATION JOINT"),
-        ((16.2, -9.0), "2\" XPS PERIMETER INSULATION"),
+        ((cx1 + 1.0, -2.5), "1\" XPS THERMAL BREAK + 1/2\" JOINT"),
+        ((cx1 + 0.9, -9.0), "2\" XPS x 2'-0\" DEEP"),
     ], xr, "r", wr, c["y"] + 0.75, ys_hi)
     dtitle(sh, c, 7, "SF-3 HEAD & SILL AT CURB", sft, note="LINK 100A")
 
 
 # ---------------------------------------------------------------------------------------- 8
 def det_parapet(sh, c):
-    """Parapet & coping at the main roof. y = 0 at T.O. CMU parapet 131'-4"."""
+    """Parapet & coping at the main roof. y = 0 at T.O. CMU parapet 131'-4".
+    Structure per 9/S-302: W16x26 edge beam 7 1/2" inboard of grid, T.O.S. 127'-9 1/2"."""
     sft = 1.5
-    ext = (-2.6, -50.0, 36.5, 7.0)
+    ext = (-2.6, -50.0, 36.5, 6.6)
     v, xl, xr, ylo, yhi = setup(sh, c, ext, sft, wl=1.42, wr=0.0)
     bot = -49.0
-    # wall
     brick_courses(v, 0, XB1, bot, 0.0, 0.0)
     rigid(v, XA1, bot, XC0, 0.0)
     cmu_courses(v, XC0, XC1, bot, 0.0, 0.0, joint="bot", bond=(-1, -6),
-                bars={-1: [9.9, 12.95], -6: [XG]})
+                bars={-1: [9.9, 12.95], -6: [9.9, 12.95]})
     air_barrier(v, [(7.7, bot), (7.7, 0.0)])
     veneer_anchor(v, -15.81, -15.79)
     veneer_anchor(v, -39.81, -39.79)
-    # PT wood blocking: 3 layers + plywood (sloped to roof)
+    # PT wood blocking: layer 1 flat, layer 2 tapered (slope to roof), 3/4" plywood cap
     o = 0.5
     wood(v, o, 0.0, o + 5.5, 1.5)
     wood(v, o + 5.5, 0.0, XC1, 1.5)
-    wood(v, o, 1.5, o + 9.25, 3.0)
-    wood(v, o + 9.25, 1.5, XC1, 3.0)
     sl = 0.5 / (XC1 - o)
-    yt = lambda x: 4.5 - (x - o) * sl
-    wood_poly(v, [(o, 3.0), (o + 5.5, 3.0), (o + 5.5, yt(o + 5.5)), (o, yt(o))])
-    wood_poly(v, [(o + 5.5, 3.0), (XC1, 3.0), (XC1, yt(XC1)), (o + 5.5, yt(o + 5.5))])
+    yt = lambda x: 3.0 - (x - o) * sl
+    wood_poly(v, [(o, 1.5), (o + 9.25, 1.5), (o + 9.25, yt(o + 9.25)), (o, yt(o))])
+    wood_poly(v, [(o + 9.25, 1.5), (XC1, 1.5), (XC1, yt(XC1)), (o + 9.25, yt(o + 9.25))])
     v.polygon([(o, yt(o)), (XC1, yt(XC1)), (XC1, yt(XC1) + 0.75), (o, yt(o) + 0.75)], lw="thin",
               fill="white")
     for f in (0.33, 0.66):
         v.line((o, yt(o) + 0.75 * f), (XC1, yt(XC1) + 0.75 * f), lw="hair")
-    # anchor bolt
-    v.line((XG, -6.0), (XG, 2.6), lw="med")
-    R(v, XG - 0.5, 2.6, XG + 0.5, 2.85, lw="fine", fill="black")
-    # roof assembly (y): deck -40..-38.5, polyiso 2+2, tapered, 1/2" cover board, EPDM
+    v.line((XG, -6.0), (XG, 1.2), lw="med")
+    R(v, XG - 0.5, 1.2, XG + 0.5, 1.45, lw="fine", fill="black")
+    # roof assembly
     xe = 36.0
     deck_profile(v, XC1 + 0.2, xe, -40.0, phase=1.0)
     v.line((XC1 + 0.2, -38.45), (xe, -38.45), lw="fine")
@@ -1115,165 +1120,162 @@ def det_parapet(sh, c):
     v.polygon([(XC1, tap(XC1)), (xe, tap(xe)), (xe, tap(xe) + 0.5), (XC1, tap(XC1) + 0.5)],
               lw="fine", fill="g20")
     membrane(v, [(xe, tap(xe) + 0.55), (XC1 + 0.07, tap(XC1) + 0.55), (XC1 + 0.07, yt(XC1) + 0.8),
-                 (o - 0.05, yt(o) + 0.8), (o - 0.05, 3.0)])
-    # coping + exterior cleat
+                 (o - 0.05, yt(o) + 0.8), (o - 0.05, 1.5)])
+    # coping (4" laps both faces) + continuous cleats
     ct = lambda x: yt(o) + 0.92 - (x - o) * sl
-    v.polyline([(-0.5, -3.45), (-0.95, -3.05), (-0.95, ct(-0.95)), (16.25, ct(16.25)),
-                (16.25, -1.2), (16.6, -1.55)], lw=1.0)
-    v.polyline([(o - 0.03, 2.6), (o - 0.03, 0.04), (-0.05, 0.04), (-0.05, -2.85), (-0.72, -3.3)],
+    v.polyline([(-0.5, -4.4), (-0.95, -4.0), (-0.95, ct(-0.95)), (16.25, ct(16.25)),
+                (16.25, -4.0), (16.65, -4.4)], lw=1.0)
+    v.polyline([(o - 0.03, 1.4), (o - 0.03, 0.04), (-0.05, 0.04), (-0.05, -3.8), (-0.72, -4.25)],
                lw="med")
-    # structure: L3x3 deck closure, W16x26 spandrel (offset), joist seat
+    v.polyline([(XC1 + 0.17, 1.0), (XC1 + 0.17, -3.8), (16.0, -4.2)], lw="med")
+    # structure: L3x3 deck edge angle, W16x26 edge beam 7 1/2" inboard, 22K6 seat
     angle(v, (XC1, -40.0), 3.0, 3.0, 0.25, dx=1, dy=-1)
     v.line((XC1 + 0.3, -41.6), (12.5, -41.6), lw="med")
-    bx = 18.5
+    bx = XG + 7.5
     steel(v, [(bx - 2.75, -42.5), (bx + 2.75, -42.5), (bx + 2.75, -42.845), (bx + 0.125, -42.845),
               (bx + 0.125, -49.0), (bx - 0.125, -49.0), (bx - 0.125, -42.845), (bx - 2.75, -42.845)])
-    R(v, 16.25, -42.5, 21.0, -42.25, lw="fine", fill="black")
-    R(v, 16.25, -42.5, 16.5, -40.0, lw="fine", fill="black")
-    R(v, 16.5, -41.5, xe, -40.0, lw="fine", fill="g40")
-    v.polyline([(21.0, -41.5), (26.0, -49.0)], lw="thin")
-    v.polyline([(21.5, -41.5), (26.5, -49.0)], lw="thin")
-    brk(v, (-0.5, bot), (22.0, bot))
+    R(v, 16.6, -42.5, 21.4, -42.25, lw="fine", fill="black")
+    R(v, 16.6, -42.5, 16.85, -40.0, lw="fine", fill="black")
+    R(v, 16.85, -41.5, xe, -40.0, lw="fine", fill="g40")
+    v.polyline([(21.4, -41.5), (26.4, -49.0)], lw="thin")
+    v.polyline([(21.9, -41.5), (26.9, -49.0)], lw="thin")
+    brk(v, (-0.5, bot), (22.4, bot))
     brk(v, (xe, -42.0), (xe, -27.5))
-    # dims
     v.dimi((24.0, tap(24.0) + 0.55), (24.0, 0.0), 0.01, text="2'-4 1/2\" (8\" MIN. ABOVE ROOF)",
            ext=False)
     v.line((XC1 + 1.2, 0.0), (25.0, 0.0), lw="hair")
-    v.dimi((-0.95, 7.0), (0.0, 7.0), 0.01, text="1\"", ext=False)
-    notes_col(sh, v, [
-        ((-0.95, 2.0), "PREFINISHED METAL COPING, 24 GA., 10'-0\" LENGTHS, CONCEALED SPLICE PLATES; SLOPE TO ROOF"),
-        ((-0.05, -1.5), "CONT. 22 GA. GALV. CLEAT, FASTEN @ 12\" O.C."),
-        ((1.8, -10.0), "FB-1 FACE BRICK"),
-        ((3.0, -15.8), "ADJUSTABLE VENEER ANCHORS @ 16\" O.C. EA. WAY"),
-        ((4.6, -24.0), "2\" AIR SPACE"),
-        ((6.6, -20.0), "2\" POLYISO CAVITY INSULATION, EXTEND TO TOP OF WALL"),
-        ((7.7, -33.0), "FLUID-APPLIED AIR / WATER BARRIER"),
-        ((11.0, -44.0), "8\" CMU, VERT. #5 @ 48\" O.C. GROUTED (S-SERIES)"),
-    ], xl, "l", 1.42, ylo, yhi)
-    xr2 = v.to_paper((17.6, 0))[0]
-    wr2 = c["x"] + c["w"] - 0.12 - xr2
-    yroof = v.to_paper((0, tap(XC1) + 0.6))[1]
-    # roof assembly callout: vertical leader through the layers with dots
+    v.dimi((-0.95, 5.6), (0.0, 5.6), 0.01, text="1\"", ext=False)
+    v.dimi((-1.9, -4.0), (-1.9, 0.0), 0.01, text="4\"", ext=False)
     xa = 31.0
     lys = [tap(xa) + 0.55, tap(xa) + 0.25, -32.0, -35.4, -37.4, -38.45, -39.25]
     v.line((xa, lys[0]), (xa, lys[-1]), lw="fine")
     for yy in lys:
         v.circle((xa, yy), v.paper_len(0.018), lw=None, fill="black")
     notes_col(sh, v, [
-        ((8.0, yt(8.0) + 0.38), "3/4\" PT PLYWOOD"),
-        ((3.0, yt(3.0) - 0.7), "TAPERED PT 2x6 + 2x10 (1 1/2\" TO 1\")"),
-        ((5.0, 2.25), "PT 2x10 + 2x6 (JOINTS STAGGERED)"),
-        ((3.0, 0.75), "PT 2x6 + 2x10, ANCHOR TO BOND BEAM W/ 1/2\" A.B. @ 32\" O.C."),
-        ((XC1 + 0.07, -4.0), "EPDM BASE FLASHING (60 MIL REINF.) UP & OVER BLOCKING, TURN DOWN 2\" UNDER COPING"),
-        ((12.0, -4.0), "CMU BOND BEAM, (2) #5"),
+        ((-0.95, 1.5), "PREFINISHED METAL COPING, 24 GA., 4\" FACE LAPS, 10'-0\" LENGTHS, CONCEALED SPLICE PLATES; SLOPE TO ROOF"),
+        ((-0.05, -2.5), "CONT. 22 GA. GALV. CLEAT EA. FACE, FASTEN @ 12\" O.C."),
+        ((1.8, -10.0), "FB-1 FACE BRICK"),
+        ((3.0, -15.8), "ADJUSTABLE VENEER ANCHORS @ 16\" O.C. EA. WAY"),
+        ((4.6, -24.0), "2\" AIR SPACE"),
+        ((6.6, -20.0), "2\" POLYISO CAVITY INSULATION, EXTEND TO TOP OF WALL"),
+        ((7.7, -33.0), "FLUID-APPLIED AIR / WATER BARRIER"),
+        ((11.0, -44.0), "ROOF BOND BEAM 127'-4\" TO 128'-0\", (2) #5; VERT. #5 @ 48\" O.C. (S-302)"),
+    ], xl, "l", 1.42, ylo, yhi)
+    xr2 = v.to_paper((17.6, 0))[0]
+    wr2 = c["x"] + c["w"] - 0.12 - xr2
+    notes_col(sh, v, [
+        ((8.0, yt(8.0) + 0.38), "3/4\" PT PLYWOOD CAP"),
+        ((4.0, yt(4.0) - 0.5), "PT 2x10 + 2x6 TAPERED 1 1/2\" TO 1\""),
+        ((3.0, 0.75), "PT 2x6 + 2x10 FLAT, 1/2\" ANCHOR BOLTS @ 32\" O.C. IN BOND BEAM"),
+        ((XC1 + 0.07, -6.0), "EPDM BASE FLASHING (60 MIL REINF.) UP & OVER BLOCKING, TURN DOWN 1 1/2\" AT EXT. FACE"),
+        ((12.0, -4.0), "TOP BOND BEAM 130'-8\" TO 131'-4\", (2) #5"),
         ((xa, lys[0]), "ROOF ASSEMBLY (TOP DOWN): 60 MIL EPDM FULLY ADHERED, RUSS STRIP AT BASE OF WALL / "
                        "1/2\" GYPSUM COVER BOARD / TAPERED POLYISO 1/4\" PER FT (A-103) / (2) LAYERS 2\" "
                        "POLYISO, JOINTS STAGGERED / SELF-ADHERED VAPOR RETARDER / 1 1/2\" TYPE B GALV. "
                        "ROOF DECK (S-103)", v.to_paper((0, tap(XC1) + 6.0))[1]),
     ], xr2, "r", wr2, v.to_paper((0, tap(XC1) + 1.2))[1], yhi)
-    xr3 = v.to_paper((25.5, 0))[0]
+    xr3 = v.to_paper((26.0, 0))[0]
     notes_col(sh, v, [
-        ((17.5, -40.6), "L3x3x1/4 DECK CLOSURE ANGLE, 1/2\" ANCHORS @ 24\" O.C."),
-        ((33.0, -40.75), "22K6 JOISTS @ 5'-0\" O.C. (S-103)"),
-        ((bx + 2.0, -42.7), "W16x26 SPANDREL (S-103); L4x4 CLIPS TO CMU @ 48\" O.C."),
+        ((17.5, -40.6), "CONT. L3x3x1/4 DECK EDGE ANGLE, 5/8\" ADH. ANCHORS @ 24\" (S-302)"),
+        ((33.0, -40.75), "22K6 JOISTS @ 5'-0\" O.C."),
+        ((bx + 2.0, -42.7), "W16x26 EDGE BEAM 7 1/2\" INBOARD OF GRID, T.O.S. 127'-9 1/2\" (S-103)"),
     ], xr3, "r", c["x"] + c["w"] - 0.12 - xr3, ylo, v.to_paper((0, -41.9))[1])
-    dtitle(sh, c, 8, "PARAPET & COPING", sft, note="T.O. CMU 131'-4\", T.O. STEEL 128'-0\"")
+    dtitle(sh, c, 8, "PARAPET & COPING", sft, note="T.O. CMU 131'-4\", T.O. JOIST 128'-0\"")
 
 
 # ---------------------------------------------------------------------------------------- 9
 def det_shelf(sh, c):
-    """Shelf angle at L2 / CS-2 band. y = 0 at T.O. slab L2 = 114'-0"."""
+    """Shelf angle at L2 / CS-2 band per 4/S-302. y = 0 at T.O. slab L2 = 114'-0".
+    L7x4x7/16 LLH, top 113'-4", vertical leg down against CMU, 3/4" embedded bolts @ 24" in the
+    grouted L2 bond beam (112'-8" to 114'-0"); slab edge at inside face of CMU."""
     sft = 1.5
-    ext = (-2.4, -36.0, 31.0, 11.0)
+    ext = (-2.4, -30.0, 31.0, 11.0)
     v, xl, xr, ylo, yhi = setup(sh, c, ext, sft, wl=1.42, wr=0.0)
-    bot, tp = -35.0, 10.0
+    bot, tp = -29.0, 10.0
+    t = 7.0 / 16.0
     # brick below (coursing adjusted to the soft joint) and above the band
-    brick_courses(v, 0, XB1, bot, -8.75, -8.75)
+    brick_courses(v, 0, XB1, bot, -8.0 - t - 0.375, -8.0 - t - 0.375)
     brick_courses(v, 0, XB1, 0.0, tp, 0.0)
     caststone(v, [(0.0, -7.625), (XB1, -7.625), (XB1, 0.0), (0.0, 0.0)])
-    # shelf angle L6x4x3/8 (horiz. leg on top), bent plate from W16x31 bottom flange
-    angle(v, (4.375, -8.0), 4.0, 6.0, 0.375, dx=-1, dy=-1)
-    btm = -6.25 - 15.875
-    steel(v, [(4.375, btm - 0.375), (10.5, btm - 0.375), (10.5, btm), (4.75, btm), (4.75, -8.75),
-              (4.375, -8.75)])
-    v.line((3.7, -11.0), (5.2, -11.0), lw="med")
-    R(v, 5.2, -11.3, 5.4, -10.7, lw="fine", fill="black")
-    wshape(v, XG, -6.25, 15.875, 5.525, 0.44, 0.275)
-    # slab + deck + pour stop + stud
-    concrete(v, [(XC0, -6.25), (31.0, -6.25), (31.0, 0.0), (XC0, 0.0)], seed=12)
-    v.polyline([(XC0 + 0.06, 0.0), (XC0 + 0.06, -6.19), (10.0, -6.19)], lw="med")
-    v.line((10.0, -6.25), (31.0, -6.25), lw="med")
-    v.line((10.0, -3.25), (31.0, -3.25), lw="fine", dash=[2, 1.5])
-    v.line((XG, -6.25), (XG, -2.0), lw="med")
-    R(v, XG - 0.4, -2.3, XG + 0.4, -2.0, lw="fine", fill="black")
-    # CMU below (stops 1 1/2" below bent plate) and above on slab
-    cmu_courses(v, XC0, XC1, bot, -24.0, -24.0, joint="bot", bond=(-1,), bars={-1: [9.9, 12.95]})
-    R(v, XC0, -24.0, XC1, btm - 0.375, lw="fine", fill="g05")
-    cmu_courses(v, XC0, XC1, 0.0, tp, 0.0, joint="bot")
-    # insulation, closure, flashing
-    yfl = lambda x: -4.0 + (3.0 / (7.55 - 4.2)) * (x - 4.2)
-    rigid(v, XA1, bot, XC0, btm - 0.375)
-    rigid(v, 0, 0, 0, 0, pts=[(XA1, btm), (XC0, btm), (XC0, yfl(7.5)), (XA1, yfl(XA1))])
-    rigid(v, 0, 0, 0, 0, pts=[(XA1, yfl(XA1) + 0.12), (7.5, yfl(7.5) + 0.12), (7.5, tp), (XA1, tp)])
-    rigid(v, 0, 0, 0, 0, pts=[(XC0 + 0.1, btm), (8.675, btm), (8.675, -6.3), (XC0 + 0.1, -6.3)])
-    R(v, XC0, btm, XC0 + 0.1, -6.3, lw="fine", fill="black")
-    flashing(v, [(-0.32, -8.18), (-0.55, -7.92), (4.2, -7.92), (4.2, -4.0), (7.55, -1.0),
-                 (7.55, 6.0)])
-    R(v, 7.55, 5.0, 7.85, 6.0, lw="fine", fill="black")
-    air_barrier(v, [(7.7, bot), (7.7, -24.0)])
-    air_barrier(v, [(7.7, 0.0), (7.7, tp)])
-    sealant_v(v, -8.75, -8.375, 0.0, 0.3, right=True, rod_r=0.22)
-    veneer_anchor(v, -31.81, -31.6)
+    # CMU continuous: L2 bond beam 2 courses (112'-8" to 114'-0")
+    cmu_courses(v, XC0, XC1, bot, tp, 0.0, joint="bot", bond=(-2, -1),
+                bars={-2: [9.9, 12.95], -1: [9.9, 12.95]})
+    # shelf angle L7x4x7/16 LLH: heel at CMU face, horizontal leg 7" out, vertical leg 4" down
+    angle(v, (XC0, -8.0), 7.0, 4.0, t, dx=-1, dy=-1)
+    v.line((XC0 - 0.6, -10.0), (12.5, -10.0), lw=1.6)
+    R(v, XC0 - 0.75, -10.3, XC0 - 0.45, -9.7, lw="fine", fill="black")
+    # insulation (cut at angle), flashing, air barrier
+    rigid(v, XA1, bot, XC0 - t - 0.05, -12.05)
+    yfl = lambda x: -7.5 + (3.5 / (XC0 - 0.08 - 5.6)) * (x - 5.6)
+    rigid(v, 0, 0, 0, 0, pts=[(XA1, -7.4), (XC0 - 0.1, yfl(XC0 - 0.1) + 0.1), (XC0 - 0.1, tp), (XA1, tp)])
+    flashing(v, [(-0.32, -8.2), (-0.55, -7.94), (5.6, -7.94), (XC0 - 0.08, -4.0),
+                 (XC0 - 0.08, 1.0)])
+    R(v, XC0 - 0.08, 0.1, XC0 + 0.22, 1.1, lw="fine", fill="black")
+    air_barrier(v, [(7.7, bot), (7.7, -12.0)])
+    air_barrier(v, [(7.7, 1.2), (7.7, tp)])
+    sealant_v(v, -8.0 - t - 0.375, -8.0 - t, 0.0, 0.3, right=True, rod_r=0.2)
+    veneer_anchor(v, -23.81, -24.0)
+    # slab edge at inside face of CMU: 1/2" joint, 3/8" bent plate pour stop, deck, spandrel
+    sx = XC1 + 0.5
+    R(v, XC1, -6.25, sx, -0.4, lw="fine", fill="g20")
+    bead(v, [(XC1, 0.0), (sx, 0.0), (sx, -0.4), (XC1, -0.4)])
+    concrete(v, [(sx + 0.375, -6.25), (31.0, -6.25), (31.0, 0.0), (sx + 0.375, 0.0)], seed=12)
+    steel(v, [(sx, -6.25), (sx + 0.375, -6.25), (sx + 0.375, -0.3), (sx, -0.3)])
+    steel(v, [(sx, -6.625), (XG + 7.5 + 2.76, -6.625), (XG + 7.5 + 2.76, -6.25), (sx, -6.25)])
+    v.line((sx + 0.4, -3.25), (31.0, -3.25), lw="fine", dash=[2, 1.5])
+    bx = XG + 7.5
+    wshape(v, bx, -6.625, 15.875, 5.525, 0.44, 0.275)
+    v.polyline([(28.0, -2.0), (13.0, -2.0), (13.0, -11.5)], lw="med")
     # L2 floor finish + base
-    R(v, XC1, 0.0, 31.0, 0.125, lw="fine", fill="g40")
+    R(v, sx + 0.375, 0.0, 31.0, 0.125, lw="fine", fill="g40")
     R(v, XC1, 0.125, XC1 + 0.25, 4.125, lw="fine", fill="g60")
     brk(v, (-0.5, bot), (XC1 + 0.5, bot))
     brk(v, (-0.5, tp), (XC1 + 0.5, tp))
     brk(v, (31.0, -7.5), (31.0, 1.0))
-    # dims
+    brk(v, (bx - 3.4, -22.9), (bx + 3.4, -22.9))
     v.dimi((0.0, -8.0), (0.0, 0.0), 1.6, text="8\"")
-    v.dimi((XC1 + 3.0, -6.25), (XC1 + 3.0, 0.0), -0.01, text="6 1/4\"", ext=False)
-    v.dimi((XC1, -24.0), (XC1, btm - 0.375), -2.2, text="1 1/2\"")
+    v.dimi((0.625, -12.6), (XC0, -12.6), 0.01, text="7\"", ext=False)
+    v.dimi((XC0, tp - 1.0), (bx, tp - 1.0), 0.01, text="1'-3 1/16\"", ext=False) if False else None
     elev_tag(sh, v, (24.0, 0.13), "T.O. SLAB L2", "114'-0\"", side="r", length=0.12)
     notes_col(sh, v, [
         ((1.8, 5.0), "FB-1 FACE BRICK"),
         ((1.8, -4.0), "CS-2 CAST STONE BAND, 8\" x 3 5/8\", SS STRAP ANCHORS (2) PER PIECE"),
-        ((5.8, -2.3), "THRU-WALL FLASHING W/ SS DRIP, LAP 8\" UP SLAB EDGE / CMU + TERM. BAR, END DAMS AT ENDS"),
+        ((6.4, -5.3), "THRU-WALL FLASHING W/ SS DRIP, LAP 8\" UP CMU + TERM. BAR; END DAMS AT W-C JAMBS"),
         ((1.2, -7.4), "WEEP VENTS @ 24\" O.C."),
-        ((2.0, -8.2), "L6x4x3/8 GALV. SHELF ANGLE, 3/4\" BOLTS @ 24\" O.C. W/ SHIMS (S-302)"),
+        ((2.0, -8.2), "L7x4x7/16 LLH GALV. SHELF ANGLE, CONT., 1/4\" GAP @ 20'-0\" MAX. (S-302)"),
         ((0.15, -8.6), "3/8\" SOFT JOINT: BACKER ROD + SEALANT"),
-        ((4.56, -16.0), "BENT PL 3/8\" CONT., WELDED TO BOTTOM FLANGE (S-302)"),
-        ((3.0, -31.7), "ADJUSTABLE VENEER ANCHORS"),
-        ((6.6, -28.0), "2\" POLYISO INSULATION"),
+        ((XC0 - 0.6, -10.0), "3/4\" A307 EMBEDDED BOLTS @ 24\" O.C. W/ SHIMS"),
+        ((3.0, -24.0), "ADJUSTABLE VENEER ANCHORS"),
+        ((6.6, -20.0), "2\" POLYISO (CUT AT ANGLE)"),
     ], xl, "l", 1.42, ylo, yhi)
-    xr2 = v.to_paper((17.4, 0))[0]
+    xr2 = v.to_paper((17.6, 0))[0]
     wr2 = c["x"] + c["w"] - 0.12 - xr2
     notes_col(sh, v, [
-        ((12.0, 4.0), "8\" CMU ON SLAB EDGE"),
+        ((12.0, 5.0), "8\" CMU, CONTINUOUS"),
         ((XC1 + 0.12, 2.6), "RB-1 RUBBER BASE"),
         ((26.0, 0.07), "VCT-1 (L2 CLASSROOMS)"),
     ], xr2, "r", wr2, v.to_paper((0, 1.3))[1], yhi)
     notes_col(sh, v, [
-        ((20.0, -3.0), "6 1/4\" COMPOSITE SLAB: 3\" DECK + 3 1/4\" LW CONC. (S-102)"),
-        ((XC0 + 0.06, -4.5), "POUR STOP"),
-        ((8.2, -12.0), "18 GA. CLOSURE PL + SPRAY FOAM; LAP AIR BARRIER TRANSITION MEMBRANE"),
-        ((XG + 0.14, -15.0), "W16x31 SPANDREL ON GRID (S-102)"),
-        ((14.0, -23.0), "1 1/2\" DEFLECTION SPACE: COMPRESSIBLE FILLER + SEALANT EA. FACE; CLIP ANGLES (S-302)"),
-        ((13.0, -28.0), "8\" CMU, TOP COURSE BOND BEAM (2) #5"),
+        ((22.0, -3.0), "6 1/4\" COMPOSITE SLAB: 3\" DECK + 3 1/4\" LW CONC. (S-102)"),
+        ((sx + 0.2, -4.6), "3/8\" BENT PL POUR STOP + 1/2\" COMPRESSIBLE JOINT"),
+        ((13.0, -9.0), "#4 x 4'-0\" @ 24\" HOOKED INTO BOND BEAM"),
+        ((11.0, -14.0), "L2 BOND BEAM 112'-8\" TO 114'-0\", (2) #5 EA. COURSE"),
+        ((bx + 0.14, -16.0), "W16x31 SPANDREL 7 1/2\" INBOARD OF GRID (S-102)"),
+        ((13.0, -24.0), "8\" CMU, PNT-1"),
     ], xr2, "r", wr2, ylo, v.to_paper((0, -7.4))[1])
     dtitle(sh, c, 9, "SHELF ANGLE AT L2 / CS-2 BAND", sft, note="BAND 113'-4\" TO 114'-0\"")
 
 
 # ---------------------------------------------------------------------------------------- 10
 def det_foundation(sh, c):
-    """Foundation / base of wall. y = 0 at FFE 100'-0"; grade 99'-4"; ledge 99'-0"."""
+    """Foundation / base of wall per 1/S-301. y = 0 at FFE 100'-0"; grade 99'-4"; ledge 99'-0".
+    12" foundation wall 3 15/16" .. 15 15/16" from brick face; 4" ledge."""
     sft = 1.5
     ext = (-6.0, -34.0, 28.5, 14.5)
     v, xl, xr, ylo, yhi = setup(sh, c, ext, sft, wl=1.42, wr=0.0)
     bot, tp = -33.0, 13.0
-    xf = -0.375
-    concrete(v, [(xf, bot), (15.625, bot), (15.625, -8.0), (XB1, -8.0), (XB1, -12.0), (xf, -12.0)],
-             seed=14)
+    xf, xg, fi = -0.0625, 3.9375, 15.9375
+    concrete(v, [(xf, bot), (fi, bot), (fi, -8.0), (xg, -8.0), (xg, -12.0), (xf, -12.0)], seed=14)
     v.line((XG, bot), (XG, 6.0), lw="fine", dash=[3, 1.5])
     # brick: base course on mortar bed, FB-2 band 99'-4" to 100'-8", FB-1 above
     R(v, 0.0, -12.0, XB1, -10.667, lw="fine", fill="white", hatch="sand", hatch_kw=dict(scale=1.4))
@@ -1282,7 +1284,7 @@ def det_foundation(sh, c):
     R(v, 0.0, 0.4167, XB1, 2.667, lw="thin", fill="g10")
     for xx in (0.6, 1.2, 1.8, 2.4, 3.0):
         v.line((xx, 0.5), (xx, 2.6), lw="hair")
-    # cavity below flashing: grout fill + 2" XPS; above: mortar net + polyiso
+    R(v, XB1, -12.0, xg, -8.0, lw="fine", fill="white", hatch="sand", hatch_kw=dict(scale=1.25))
     R(v, XB1, -8.0, XA1, 0.0, lw="fine", fill="white", hatch="sand", hatch_kw=dict(scale=1.25))
     rigid(v, XA1, -8.0, XC0, 0.0)
     rigid(v, XA1, 0.3, XC0, tp)
@@ -1291,47 +1293,43 @@ def det_foundation(sh, c):
     flashing(v, [(-0.32, -0.05), (-0.55, 0.2), (XC0 - 0.07, 0.2), (XC0 - 0.07, 8.0)])
     R(v, XC0 - 0.08, 7.0, XC0 + 0.22, 8.1, lw="fine", fill="black")
     air_barrier(v, [(7.7, 7.2), (7.7, tp)])
-    # slab, isolation joint, vapor retarder, base, perimeter insulation
+    # slab, isolation joint, vapor retarder, base, perimeter insulation (2'-0" deep, S-301)
     concrete(v, [(15.75, -5.0), (28.5, -5.0), (28.5, 0.0), (15.75, 0.0)], seed=15)
     R(v, XC1, -5.0, 15.75, -0.4, lw="fine", fill="g20")
     bead(v, [(XC1, 0.0), (15.75, 0.0), (15.75, -0.4), (XC1, -0.4)])
-    rigid(v, 15.625, -29.0, 17.625, -5.0)
-    rigid(v, 17.625, -7.0, 28.5, -5.0)
-    v.line((15.75, -5.05), (28.5, -5.05), lw="med", dash=[4, 1.5])
-    gravel(v, [(17.625, -11.0), (28.5, -11.0), (28.5, -7.0), (17.625, -7.0)])
-    earth(v, [(17.625, bot), (28.5, bot), (28.5, -11.0), (17.625, -11.0)])
-    earth(v, [(15.625, bot), (17.625, bot), (17.625, -29.0), (15.625, -29.0)])
-    # exterior grade + dampproofing
+    rigid(v, fi, -29.0, fi + 2.0, -5.0)
+    v.polyline([(15.8, -1.0), (15.8, -5.05), (28.5, -5.05)], lw="med", dash=[4, 1.5])
+    gravel(v, [(fi + 2.0, -11.0), (28.5, -11.0), (28.5, -5.1), (fi + 2.0, -5.1)])
+    earth(v, [(fi + 2.0, bot), (28.5, bot), (28.5, -11.0), (fi + 2.0, -11.0)])
+    earth(v, [(fi, bot), (fi + 2.0, bot), (fi + 2.0, -29.0), (fi, -29.0)])
     earth(v, [(-6.0, bot), (xf, bot), (xf, -8.0), (-6.0, -8.3)])
     v.line((-6.0, -8.3), (0.0, -8.0), lw="thin")
-    v.polyline([(xf - 0.06, bot), (xf - 0.06, -12.0), (-0.06, -12.0), (-0.06, -8.0)], lw="med",
-               dash=[1.5, 1])
-    # VCT + rubber base inside
+    v.polyline([(xf - 0.06, bot), (xf - 0.06, -8.0)], lw="med", dash=[1.5, 1])
+    v.line((XG + 3.0, -31.0), (XG + 3.0, 4.0), lw="med", dash=[6, 1.5])
     R(v, 15.75, 0.0, 28.5, 0.125, lw="fine", fill="g40")
     R(v, XC1, 0.125, XC1 + 0.25, 4.125, lw="fine", fill="g60")
     brk(v, (-5.5, bot), (28.0, bot))
     brk(v, (28.5, -12.0), (28.5, 1.0))
     brk(v, (-0.5, tp), (XC1 + 0.5, tp))
-    # dims
     v.dimi((-3.0, -8.0), (-3.0, 0.0), 0.01, text="8\"", ext=False)
-    v.dimi((xf, -12.0), (XB1, -12.0), 1.2, text="4\"", flip_text=True)
-    v.dimi((XB1, -18.0), (15.625, -18.0), 0.01, text="1'-0\"", ext=False)
+    v.dimi((xf, -12.0), (xg, -12.0), 1.2, text="4\"", flip_text=True)
+    v.dimi((xg, -18.0), (fi, -18.0), 0.01, text="1'-0\"", ext=False)
     v.dimi((27.0, -5.0), (27.0, 0.0), -0.01, text="5\"", ext=False)
     v.dimi((27.0, -11.0), (27.0, -5.0), -0.01, text="6\"", ext=False)
-    v.dimi((16.6, -29.0), (16.6, -5.0), 0.01, text="2'-0\"", ext=False)
+    v.dimi((fi + 1.0, -29.0), (fi + 1.0, -5.0), 0.01, text="2'-0\"", ext=False)
     elev_tag(sh, v, (21.0, 0.13), "FFE L1", "100'-0\"", side="r", length=0.12)
     notes_col(sh, v, [
         ((1.8, 9.0), "FB-1 FACE BRICK"),
         ((1.8, 4.0), "FB-2 ACCENT BRICK BASE BAND, 6 COURSES 99'-4\" TO 100'-8\""),
         ((XB1 + 0.5, 6.0), "MORTAR NET DRAINAGE MAT 10\" HIGH"),
         ((1.5, 1.6), "WEEP VENTS @ 24\" O.C. IN FIRST COURSE ABOVE FLASHING"),
-        ((2.6, 0.2), "THRU-WALL FLASHING W/ SS DRIP 8\" ABOVE GRADE; LAP 8\" UP CMU, TERM. BAR + SEALANT; END DAMS"),
+        ((2.6, 0.2), "THRU-WALL FLASHING W/ SS DRIP 8\" ABOVE GRADE (100'-0\"); LAP 8\" UP CMU, TERM. BAR + SEALANT; END DAMS"),
         ((4.6, -4.0), "GROUT AIR SPACE SOLID BELOW FLASHING"),
         ((6.6, -6.0), "2\" XPS INSULATION BELOW FLASHING"),
-        ((1.8, -9.0), "BRICK ON 4\" LEDGE, 99'-0\", FULL MORTAR BED"),
-        ((xf - 0.06, -20.0), "BITUMINOUS DAMPPROOFING"),
+        ((1.8, -9.0), "BRICK ON 4\" LEDGE 99'-0\", FULL MORTAR BED"),
         ((-3.0, -9.0), "FINISH GRADE 99'-4\", SLOPE AWAY 5% MIN. FOR 10'-0\""),
-        ((-3.0, -24.0), "COMPACTED BACKFILL"),
+        ((xf - 0.06, -20.0), "BITUMINOUS DAMPPROOFING"),
+        ((-3.0, -26.0), "COMPACTED BACKFILL"),
     ], xl, "l", 1.42, ylo, yhi)
     xr2 = v.to_paper((17.6, 0))[0]
     wr2 = c["x"] + c["w"] - 0.12 - xr2
@@ -1346,10 +1344,10 @@ def det_foundation(sh, c):
     notes_col(sh, v, [
         ((17.0, -2.5), "5\" SLAB ON GRADE, 4,000 PSI, WWF 6x6-W2.9xW2.9"),
         ((15.5, -0.6), "1/2\" ISOLATION JOINT + SEALANT"),
-        ((18.2, -5.05), "15 MIL VAPOR RETARDER"),
-        ((18.3, -6.2), "2\" XPS PERIMETER INSUL. (R-10), 4'-0\" TOTAL: 2'-0\" VERT. + 2'-0\" HORIZ."),
-        ((18.4, -9.5), "6\" CA-6 BASE"),
-        ((11.0, -3.5), "GROUT FIRST CMU COURSE SOLID; #5 DOWELS (S-301)"),
+        ((18.2, -5.05), "15 MIL VAPOR RETARDER, TURN UP AT WALL"),
+        ((18.3, -9.5), "6\" CA-6 BASE"),
+        ((fi + 0.5, -16.0), "2\" XPS (R-10) PERIMETER INSULATION x 2'-0\" DEEP"),
+        ((11.0, -3.5), "GROUT CMU CELLS SOLID BELOW SLAB; #5 DOWELS @ 48\" (S-301)"),
         ((10.0, -24.0), "12\" CONC. FDN. WALL W/ 4\" BRICK LEDGE (S-301)"),
     ], xr3, "r", wr3, ylo, v.to_paper((0, -12.0))[1])
     dtitle(sh, c, 10, "FOUNDATION / BASE OF WALL", sft)
@@ -1414,83 +1412,92 @@ def det_ej_cj(sh, c):
 
 # ---------------------------------------------------------------------------------------- 12
 def det_link_roof(sh, c):
-    """Link roof at main building west wall (grid 1, B-C). y = 0 at 114'-0" (link T.O. steel
-    = L2 T.O. slab). x = 0 at face of brick of wall W0; link roof to the left."""
+    """Link roof at main building wall W0 (grid 1 between B and C). y = 0 at 114'-0" (link
+    T.O. steel = L2 T.O. slab). x = 0 at face of brick of W0 (link roof to the left).
+    W0 CMU bears on 3/8" cap PL on W16x31 on grid (S-102 note 4); brick starts on a shelf
+    angle at 115'-4" (A-202); base flashing below on glass-mat sheathing."""
     sft = 1.5
-    ext = (-13.0, -20.0, 20.0, 29.0)
+    ext = (-12.0, -24.0, 21.5, 31.0)
     v, xl, xr, ylo, yhi = setup(sh, c, ext, sft, wl=1.5, wr=1.2)
-    bot, tp = -20.0, 28.0
-    bb = 1.875                        # bearing of brick on shelf angle
-    # link roof: edge beam, deck, insulation, cover board
-    wshape(v, -6.5, 0.0, 11.91, 3.97, 0.225, 0.2)
-    deck_profile(v, -13.0, -1.0, 0.0, phase=2.0)
-    v.line((-13.0, 1.55), (-5.5, 1.55), lw="fine")
-    rigid(v, -13.0, 1.6, -5.5, 3.6)
-    rigid(v, -13.0, 3.6, -5.5, 5.5)
-    R(v, -13.0, 5.5, -5.5, 6.0, lw="fine", fill="g20")
+    bot, tp = -23.5, 30.0
+    ys = 16.0                          # 115'-4" shelf angle (top)
+    t = 7.0 / 16.0
+    # W16x31 on grid + 3/8" cap plate, grouted cut course, CMU above from 114'-0"
+    wshape(v, XG, -6.25, 15.875, 5.525, 0.44, 0.275)
+    R(v, XC0, -6.25, XC1, -5.875, lw="fine", fill="black")
+    R(v, XC0, -5.875, XC1, -0.375, lw="thin", fill="white", hatch="sand", hatch_kw=dict(scale=1.25))
+    cmu_courses(v, XC0, XC1, 0.0, tp, 0.0, joint="bot", bond=(1,), bars={1: [9.9, 12.95]})
+    air_barrier(v, [(7.7, 1.5), (7.7, tp)])
+    # link deck on ledger angle bolted to the cut course / CMU
+    angle(v, (XC0, 0.0), 4.0, 4.0, 0.375, dx=-1, dy=-1)
+    v.line((XC0 - 0.6, -2.0), (10.5, -2.0), lw="med")
+    deck_profile(v, -12.0, XC0 - 4.0 + 0.2, 0.0, phase=2.0)
+    v.line((-12.0, 1.55), (-2.4, 1.55), lw="fine")
+    rigid(v, -12.0, 1.6, -2.4, 3.6)
+    rigid(v, -12.0, 3.6, -2.4, 5.5)
+    R(v, -12.0, 5.5, -2.4, 6.0, lw="fine", fill="g20")
     for k in range(3):
-        wood(v, -5.5, 1.5 + 1.5 * k, 0.0, 3.0 + 1.5 * k)
-    wood_poly(v, [(-3.5, 6.0), (0.0, 6.0), (0.0, 9.5)])
-    membrane(v, [(-13.0, 6.05), (-3.6, 6.05), (-0.06, 9.6), (-0.06, 14.2)])
-    R(v, -0.36, 13.4, -0.06, 14.3, lw="fine", fill="black")
-    rigid(v, -1.0, 0.0, -0.05, 1.45)
-    # main wall W0: shelf angle on bent plate from W12x19, brick, grout fill, flashing
-    angle(v, (4.375, bb), 4.0, 6.0, 0.375, dx=-1, dy=-1)
-    bm = -6.25 - 12.16
-    steel(v, [(4.375, bm - 0.375), (10.5, bm - 0.375), (10.5, bm), (4.75, bm), (4.75, -1.0),
-              (4.375, -1.0)])
-    wshape(v, XG, -6.25, 12.16, 4.005, 0.35, 0.235)
-    brick_courses(v, 0, XB1, bb, tp, bb)
-    R(v, XB1, bb, XA1, bb + 16.0, lw="fine", fill="white", hatch="sand", hatch_kw=dict(scale=1.25))
-    yfl = lambda x: bb + 16.2 + (2.0 / (7.55 - XA1)) * (x - XA1)
-    rigid(v, 0, 0, 0, 0, pts=[(XA1, bb), (7.5, bb), (7.5, yfl(7.5) - 0.12), (XA1, yfl(XA1) - 0.12)])
-    rigid(v, 0, 0, 0, 0, pts=[(XA1, yfl(XA1) + 0.12), (7.5, yfl(7.5) + 0.12), (7.5, tp), (XA1, tp)])
-    flashing(v, [(-0.32, bb + 15.85), (-0.55, bb + 16.2), (XA1, bb + 16.2), (7.55, yfl(7.55)),
-                 (7.55, bb + 24.0)])
-    flashing(v, [(-0.32, bb - 0.2), (-0.55, bb + 0.05), (4.3, bb + 0.05)], lw=1.0)
-    # reglet counterflashing in the brick bed joint 5 courses above the angle
-    yr = bb + 5 * BRICK_MOD + 0.2
-    v.polyline([(1.0, yr), (-0.32, yr), (-0.32, yr - 0.5), (-0.6, yr - 0.5), (-0.6, 11.4),
-                (-0.9, 11.1)], lw=1.0)
-    bead(v, [(-0.32, yr - 0.02), (0.0, yr - 0.02), (0.0, yr + 0.25), (-0.32, yr + 0.25)])
-    # CMU on slab edge, slab, deck
-    cmu_courses(v, XC0, XC1, 0.0, tp, 0.0, joint="bot")
-    air_barrier(v, [(7.7, 0.0), (7.7, tp)])
-    concrete(v, [(XC0, -6.25), (20.0, -6.25), (20.0, 0.0), (XC0, 0.0)], seed=17)
-    v.polyline([(XC0 + 0.06, 0.0), (XC0 + 0.06, -6.19), (9.0, -6.19)], lw="med")
-    v.line((13.5, -6.25), (20.0, -6.25), lw="med")
-    v.line((13.5, -3.25), (20.0, -3.25), lw="fine", dash=[2, 1.5])
-    R(v, XC1, 0.0, 20.0, 0.125, lw="fine", fill="g40")
+        wood(v, -2.375, 1.5 + 1.5 * k, 3.125, 3.0 + 1.5 * k)
+    # wall below the shelf angle: 2" XPS + 2" polyiso + 1/2" glass-mat sheathing
+    rigid(v, XB1, 1.5, XA1, ys - 6.0 - 0.1)
+    rigid(v, XA1, 1.5, XC0 - t - 0.05, ys - 4.0 - 0.1)
+    rigid(v, XA1, ys - 4.0 + 0.05, XC0 - 0.05, ys - t - 0.05) if False else None
+    R(v, 3.125, 1.5, XB1, ys - 6.0 - 0.1, lw="fine", fill="g20")
+    wood_poly(v, [(-0.375, 6.0), (3.125, 6.0), (3.125, 9.5)])
+    membrane(v, [(-12.0, 6.05), (-0.43, 6.05), (3.07, 9.55), (3.07, 9.75)])
+    # shelf angle L7x4x7/16 LLH at 115'-4" (sim. 9) + flashing, brick above
+    angle(v, (XC0, ys), 7.0, 4.0, t, dx=-1, dy=-1)
+    v.line((XC0 - 0.6, ys - 2.0), (12.5, ys - 2.0), lw=1.6)
+    rigid(v, XA1, ys - 4.0 + 0.05, XC0 - t - 0.05, ys - t - 0.05)
+    brick_courses(v, 0, XB1, ys, tp, ys)
+    flashing(v, [(-0.32, ys - 0.2), (-0.55, ys + 0.06), (5.6, ys + 0.06), (XC0 - 0.08, ys + 4.0),
+                 (XC0 - 0.08, ys + 9.0)])
+    R(v, XC0 - 0.08, ys + 8.0, XC0 + 0.22, ys + 9.0, lw="fine", fill="black")
+    yi = lambda x: ys + 0.5 + (3.4 / (XC0 - 0.1 - 5.6)) * (x - 5.6)
+    rigid(v, 0, 0, 0, 0, pts=[(XA1, ys + 0.6), (XC0 - 0.1, yi(XC0 - 0.1) + 0.1), (XC0 - 0.1, tp),
+                               (XA1, tp)])
+    # base flashing up sheathing, termination bar, counterflashing fastened under shelf angle
+    membrane(v, [(3.07, 9.5), (3.07, ys - 6.6)])
+    R(v, 2.8, ys - 7.4, 3.07, ys - 6.4, lw="fine", fill="black")
+    v.polyline([(2.2, ys - t), (2.2, ys - t - 0.15), (2.75, ys - t - 0.15), (2.75, ys - 9.0),
+                (2.45, ys - 9.4)], lw=1.0)
+    R(v, -0.2, 1.5, 0.0, 1.5, lw=None) if False else None
+    # L2 corridor slab (inside), deck edge per 4/S-302 sim.
+    sx = XC1 + 0.5
+    R(v, XC1, -6.25, sx, -0.4, lw="fine", fill="g20")
+    bead(v, [(XC1, 0.0), (sx, 0.0), (sx, -0.4), (XC1, -0.4)])
+    concrete(v, [(sx + 0.375, -6.25), (21.5, -6.25), (21.5, 0.0), (sx + 0.375, 0.0)], seed=17)
+    steel(v, [(sx, -6.25), (sx + 0.375, -6.25), (sx + 0.375, -0.3), (sx, -0.3)])
+    v.line((sx + 0.4, -3.25), (21.5, -3.25), lw="fine", dash=[2, 1.5])
+    R(v, sx + 0.375, 0.0, 21.5, 0.125, lw="fine", fill="g40")
     R(v, XC1, 0.125, XC1 + 0.25, 4.125, lw="fine", fill="g60")
     brk(v, (-0.5, tp), (XC1 + 0.5, tp))
-    brk(v, (-13.0, -1.0), (-13.0, 7.0))
-    brk(v, (20.0, -7.0), (20.0, 1.0))
-    brk(v, (3.0, bm - 1.0), (14.0, bm - 1.0))
-    brk(v, (-9.0, -12.5), (-4.0, -12.5))
-    # dims
-    v.dimi((-6.0, 6.0), (-6.0, 14.0), 2.6, text="8\" MIN.")
+    brk(v, (-12.0, -1.0), (-12.0, 7.0))
+    brk(v, (21.5, -7.0), (21.5, 1.0))
+    brk(v, (XG - 3.4, -22.5), (XG + 3.4, -22.5))
+    v.dimi((-6.0, 6.0), (-6.0, ys), 2.2, text="10\" (8\" MIN.)")
     elev_tag(sh, v, (XC1 + 0.5, 0.13), "T.O. SLAB L2", "114'-0\"", side="r", length=0.1)
     notes_col(sh, v, [
-        ((-0.6, 12.5), "SS 2-PIECE COUNTERFLASHING: RECEIVER IN SAWCUT REGLET IN BRICK BED JOINT + REMOVABLE FLASHING, LAP 4\" OVER BASE FLASHING; SEALANT"),
-        ((-0.2, 13.8), "TERMINATION BAR @ 8\" O.C. + LAP SEALANT"),
-        ((-0.06, 10.5), "EPDM BASE FLASHING (60 MIL REINF.) UP WALL 8\" MIN."),
-        ((-1.2, 7.5), "PT WOOD CANT STRIP 3 1/2\" (45 DEG.)"),
-        ((-10.0, 6.05), "60 MIL EPDM FULLY ADHERED ON 1/2\" COVER BOARD"),
-        ((-11.0, 4.5), "(2) LAYERS 2\" POLYISO (R-25 MIN.)"),
-        ((-3.0, 3.75), "(3) PT 2x6 WOOD NAILERS = INSUL. HEIGHT, FASTEN TO DECK @ 12\" O.C."),
-        ((-0.5, 0.7), "MINERAL WOOL FILL AT DECK EDGE"),
-        ((-11.0, 0.9), "1 1/2\" TYPE B ROOF DECK"),
-        ((-6.5, -6.0), "LINK ROOF EDGE BEAM W12x14 (S-103)"),
+        ((1.8, ys + 9.0), "FB-1 FACE BRICK, STARTS ON SHELF ANGLE @ 115'-4\""),
+        ((2.0, ys - 0.2), "L7x4x7/16 LLH SHELF ANGLE W/ FLASHING + SS DRIP, 3/4\" BOLTS @ 24\" (SIM. 9)"),
+        ((2.75, ys - 4.0), "SS COUNTERFLASHING FASTENED UNDER SHELF ANGLE @ 12\" O.C., LAP 4\" OVER BASE FLASHING"),
+        ((2.94, ys - 6.9), "TERMINATION BAR @ 8\" O.C. + LAP SEALANT"),
+        ((3.07, 8.0), "EPDM BASE FLASHING (60 MIL REINF.) UP WALL 8\" MIN."),
+        ((1.2, 7.0), "PT WOOD CANT STRIP 3 1/2\""),
+        ((-8.0, 6.05), "60 MIL EPDM FULLY ADHERED ON 1/2\" COVER BOARD"),
+        ((-9.0, 4.5), "(2) LAYERS 2\" POLYISO (TAPERED CRICKET PER A-103)"),
+        ((0.4, 3.75), "(3) PT 2x6 NAILERS = INSUL. HT., FASTEN TO DECK @ 12\" O.C."),
+        ((-10.0, 0.9), "1 1/2\" TYPE B ROOF DECK, SIDE LAP AT WALL"),
+        ((XC0 - 2.0, -0.2), "CONT. L4x4x3/8 DECK LEDGER, 3/4\" ANCHORS @ 24\" (S-103)"),
     ], xl, "l", 1.5, ylo, yhi)
     notes_col(sh, v, [
-        ((1.8, 24.0), "FB-1 FACE BRICK"),
-        ((5.6, bb + 16.4), "THRU-WALL FLASHING W/ SS DRIP, WEEPS @ 24\" O.C. ABOVE; END DAMS"),
-        ((4.6, 9.0), "GROUT AIR SPACE SOLID BELOW FLASHING"),
-        ((12.0, 12.0), "EW-1: 8\" CMU W/ AIR BARRIER + 2\" POLYISO"),
-        ((2.0, bb - 0.2), "L6x4x3/8 SHELF ANGLE W/ FLASHING ON BENT PL FROM W12x19 (SIM. 9)"),
+        ((12.0, 24.0), "EW-1: 8\" CMU W/ AIR BARRIER"),
+        ((6.6, 21.5), "2\" POLYISO"),
+        ((4.6, 7.0), "1/2\" GLASS-MAT SHEATHING ON 2\" XPS, FASTEN THRU TO CMU"),
         ((XC1 + 0.12, 2.6), "RB-1 / LVT-1 (CORRIDOR 200)"),
-        ((17.0, -3.0), "L2 SLAB (S-102)"),
-        ((XG + 1.0, -12.0), "W12x19 ON GRID 1 (S-102)"),
+        ((12.0, -3.0), "GROUT CUT COURSE SOLID ON 3/8\" CAP PL"),
+        ((XG + 0.14, -14.0), "W16x31 ON GRID 1 (S-102)"),
+        ((19.0, -4.5), "L2 SLAB, POUR STOP + JOINT (SIM. 9)"),
     ], xr, "r", 1.2, ylo, yhi)
     dtitle(sh, c, 12, "LINK ROOF TO MAIN WALL", sft, note="GRID 1 BETWEEN B AND C")
 

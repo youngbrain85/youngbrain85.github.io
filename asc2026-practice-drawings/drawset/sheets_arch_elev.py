@@ -35,8 +35,8 @@ CS2_BOT, CS2_TOP = 113 + 4 * IN, L2   # CS-2 band on L6x4x3/8 shelf angle
 SOLDIER = 8 * IN
 CS1_H, CS1_PROJ, CS1_LUG = 4 * IN, 1 * IN, 3 * IN   # CS-1: 4" high, 1" proj., MO + 3" each end
 COPE_DROP = 4 * IN                # coping face leg laps 4" over the brick
-COPE_UP = 3.5 * IN                # (2) 2x blocking + coping above T.O. masonry
-W0_SHELF = 115 + 4 * IN           # brick on corridor-end wall W0 starts above the link roof
+COPE_UP = 5.5 * IN                # (3) layers 2x + 3/4" plywood + coping above T.O. masonry (8/A-501)
+W0_SHELF = 114 + 1.875 * IN       # brick on corridor-end wall W0 bears on a shelf angle (12/A-501)
 CURB_TOP = L1                     # SF-3 concrete curb 99'-4" -> 100'-0"
 BASE_FLASH = L1                   # base through-wall flashing 8" above grade
 VENT_H = 2 + 4 * IN               # W-A / W-B: intermediate rail above MO sill (awning vents below)
@@ -56,7 +56,7 @@ SCUPPER_X = -10.0                 # DESIGN 6a: link scupper / conductor head / d
 DECK = 1.5 * IN
 INS_MIN = 1.5 * IN                # tapered polyiso min. at drains (A-103)
 COVER = 0.5 * IN
-LINK_INS_MIN = 1.5 * IN
+LINK_INS_MIN = 4.0 * IN           # (2) layers 2" polyiso at the low (scupper) side (12/A-501)
 
 
 def roof_ins(x, y):
@@ -93,8 +93,8 @@ LINTEL_BRG = 8 * IN
 # ---------------------------------------------------------------------------------------------
 D_HEAD, D_JAMB, D_SILL = "1", "2", "3"
 D_SF1_HEAD, D_SF1_SILL, D_SF1_JAMB = "4", "5", "6"
-D_SF3_HEAD, D_SF3_SILL, D_SF3_JAMB = "7", "8", "9"
-D_PARAPET, D_SHELF, D_BASE, D_EJ, D_LINKROOF = "10", "11", "12", "13", "14"
+D_SF3 = "7"                       # SF-3 head & sill at curb
+D_PARAPET, D_SHELF, D_BASE, D_EJ, D_LINKROOF, D_CURB, D_TIEIN = "8", "9", "10", "11", "12", "13", "14"
 
 
 # =============================================================================================
@@ -767,8 +767,8 @@ ELEV_KEYNOTES = {
     12: "LOUVER LV-1 FURNISHED BY DIV. 23; OPENING, LOOSE LINTEL, MF-1 SILL FLASHING AND SEALANT BY GC.",
     13: "W-C STAIR STOREFRONT, TEMPERED GLAZING: INTERMEDIATE LANDING (107'-0\") BEYOND. CS-2 BAND AND "
         "SHELF ANGLE TERMINATE AT W-C JAMBS WITH END DAMS.",
-    14: "BRICK ON CORRIDOR-END WALL STARTS ON SHELF ANGLE AT 115'-4\", ABOVE LINK ROOF BASE FLASHING. "
-        f"SEE {D_LINKROOF}/A-501.",
+    14: "CORRIDOR-END WALL ABOVE LINK ROOF: BRICK ON SHELF ANGLE AT 114'-1 7/8\"; EPDM BASE FLASHING "
+        f"8\" MIN. W/ SS COUNTERFLASHING IN BRICK REGLET. SEE {D_LINKROOF}/A-501.",
     15: "LINK SHOWN IN SECTION AT EXISTING BUILDING FACE (x = -35'-6\"); EXISTING BUILDING IN FOREGROUND "
         "NOT SHOWN FOR CLARITY.",
 }
@@ -1094,18 +1094,20 @@ def draw_a201(sh):
 # =============================================================================================
 # Cut exterior wall (EW-1) for elevations / building sections
 # =============================================================================================
-FTG_C = (2.1875) * IN            # footing centerline offset from grid (centered on fdn. wall)
+FDN_IN, FDN_OUT = -4.1875 * IN, 11.8125 * IN    # 12" wall + 4" brick ledge (10/A-501)
+FTG_C = (FDN_IN + FDN_OUT) / 2                   # footing centered on the foundation wall
 FTG_W = 30 * IN
-FDN_IN, FDN_OUT = -CMUh, CMUh + 4.375 * IN       # 12" foundation wall (-3 13/16" .. +8 3/16")
-LEDGE_TOP_HAUNCH = 98.0                           # brick-ledge haunch bottom
 
 
 def _U(hg, se, u):
     return hg + se * u
 
 
+CMU_SPANDREL_GAP = (112.0, L2)    # CMU stops at 112'-0" under the L2 spandrel on grid (9/A-501)
+
+
 def ew_cut(v, hg, se, z_top, z_bot=BOF, cs2=False, coping=True, z_break=None, footing=True,
-           holes=(), brick_from=LEDGE, cmu_from=GRADE, lw_cut="heavy", detail=False):
+           holes=(), brick_from=LEDGE, cmu_from=GRADE, lw_cut="heavy", detail=False, cmu_gaps=()):
     """EW-1 cut in section. hg = h of the grid (CMU centerline), se = +1/-1 direction of the
     exterior in h. holes: [(z0, z1)] openings through the whole wall (windows)."""
     U = lambda u: hg + se * u
@@ -1123,12 +1125,13 @@ def ew_cut(v, hg, se, z_top, z_bot=BOF, cs2=False, coping=True, z_break=None, fo
         g = band(FTG_C - FTG_W / 2, FTG_C + FTG_W / 2, BOF, TOF)
         v.geom(g, lw=lw_cut, fill="white", hatch="concrete", hatch_kw=dict(scale=0.6))
         # foundation wall + brick ledge haunch
-        pts = [(U(FDN_IN), TOF), (U(FDN_OUT), TOF), (U(FDN_OUT), LEDGE_TOP_HAUNCH - 3 * IN),
-               (U(OUT), LEDGE_TOP_HAUNCH), (U(OUT), LEDGE), (U(EW_AIR_OUT), LEDGE),
+        pts = [(U(FDN_IN), TOF), (U(FDN_OUT), TOF), (U(FDN_OUT), LEDGE), (U(EW_AIR_OUT), LEDGE),
                (U(EW_AIR_OUT), GRADE), (U(FDN_IN), GRADE)]
         v.polygon(pts, lw=lw_cut, fill="white", hatch="concrete", hatch_kw=dict(scale=0.6))
     # CMU
     g = band(-CMUh, CMUh, cmu_from, zt)
+    for (c0, c1) in cmu_gaps:
+        g = g.difference(box(U(-CMUh) - 1, c0, U(CMUh) + 1, c1))
     v.geom(g, lw=None, fill="white", hatch="ansi31", hatch_kw=hk, stroke=False)
     # insulation
     gi = band(CMUh, CMUh + 2 * IN, cmu_from, zt)
@@ -1149,9 +1152,9 @@ def ew_cut(v, hg, se, z_top, z_bot=BOF, cs2=False, coping=True, z_break=None, fo
     if coping and z_break is None:
         # (2) layers PT blocking + coping
         a, b = sorted((U(-CMUh), U(OUT)))
-        R(v, a, z_top, b, z_top + 3 * IN, lw="fine", fill="white", hatch="wood")
-        v.polyline([(U(-CMUh - 1.0 * IN), z_top - 3 * IN), (U(-CMUh - 1.0 * IN), z_top + 3.2 * IN),
-                    (U(OUT + 1.0 * IN), z_top + 3.5 * IN), (U(OUT + 1.0 * IN), z_top - COPE_DROP)],
+        R(v, a, z_top, b, z_top + 5.0 * IN, lw="fine", fill="white", hatch="wood")
+        v.polyline([(U(-CMUh - 1.3 * IN), z_top - 1.5 * IN), (U(-CMUh - 1.3 * IN), z_top + 5.0 * IN),
+                    (U(OUT + 1.0 * IN), z_top + 5.4 * IN), (U(OUT + 1.0 * IN), z_top - COPE_DROP)],
                    lw="thin")
     if z_break is not None:
         a, b = sorted((U(-CMUh - 6 * IN), U(OUT + 6 * IN)))
@@ -1605,6 +1608,8 @@ def ew_section(v, hg, se, face_key, along, z_top=PARAPET, cs2=True, detail=False
             z0 = o.sill
         holes.append((z0, o.head))
     cs2_here = cs2 and not any(o.type == "W-C" for o in ops)
+    if face_key in ("N", "S", "E") and not any(o.type == "W-C" for o in ops):
+        kw.setdefault("cmu_gaps", [CMU_SPANDREL_GAP])
     ew_cut(v, hg, se, z_top, cs2=cs2_here, holes=holes, **kw)
     for o in ops:
         window_cut(v, hg, se, o, detail=detail)
@@ -1696,12 +1701,11 @@ def section_1(v):
         beam_cut(v, yg, L2 - SLAB2, "W18x35")
         beam_cut(v, yg, ROOF - JOIST_SEAT, "W18x35")
     # ---- L2 floor ----
-    a, b = CMUh + 0.5 * IN, 72 - CMUh - 0.5 * IN
+    a, b = -CMUh, 72 + CMUh
     R(v, a, L2 - SLAB2, b, L2, lw="thin", fill="white", hatch="concrete", hatch_kw=dict(scale=0.5))
     v.line((a, L2 - SLAB2 + 3 * IN), (b, L2 - SLAB2 + 3 * IN), lw="hair")
-    for yy, nm in ((SPANDREL_OFF + BEAMS["W16x31"][1] * IN / 2, "W16x31"), (10.0, "W16x26"),
-                   (20.0, "W16x26"), (52.0, "W16x26"), (62.0, "W16x26"),
-                   (72 - SPANDREL_OFF - BEAMS["W16x31"][1] * IN / 2, "W16x31")):
+    for yy, nm in ((0.0, "W16x31"), (10.0, "W16x26"),
+                   (20.0, "W16x26"), (52.0, "W16x26"), (62.0, "W16x26"), (72.0, "W16x31")):
         beam_cut(v, yy, L2 - SLAB2, nm)
     # ---- roof ----
     for yy in (SPANDREL_OFF + BEAMS["W16x26"][1] * IN / 2, 72 - SPANDREL_OFF - BEAMS["W16x26"][1] * IN / 2):
@@ -1823,13 +1827,13 @@ def section_2(v):
                 (-OUT, W0_SHELF)], lw="med")
     v.line((-OUT, LINK_ROOF + DECK + t + COVER), (-OUT, W0_SHELF - 0.2 * IN), lw="med")
     # floors, ceilings
-    R(v, CMUh, L2 - SLAB2, 150 - CMUh - 0.5 * IN, L2, lw="thin", fill="white", hatch="concrete",
+    R(v, CMUh, L2 - SLAB2, 150 + CMUh, L2, lw="thin", fill="white", hatch="concrete",
       hatch_kw=dict(scale=0.5))
     for x in M.GRID_X.values():
         if 0 < x < 150:
             beam_cut(v, x, L2 - SLAB2, "W12x19")
             beam_cut(v, x, ROOF, "W12x14")
-    beam_cut(v, 150 - SPANDREL_OFF - BEAMS["W12x19"][1] * IN / 2, L2 - SLAB2, "W12x19")
+    beam_cut(v, 150.0, L2 - SLAB2, "W12x19")
     beam_cut(v, 150 - SPANDREL_OFF - BEAMS["W12x14"][1] * IN / 2, ROOF, "W12x14")
     beam_cut(v, SPANDREL_OFF + BEAMS["W12x14"][1] * IN / 2, ROOF, "W12x14")
     for i in range(1, 30):
@@ -2001,8 +2005,9 @@ def notes_section_3(v):
 
 ASSEMBLIES = [
     ["R-1", "MAIN ROOF", "60-MIL EPDM FULLY ADHERED; 1/2\" GYPSUM COVER BOARD; TAPERED POLYISO 1/4\":12 "
-     "(1 1/2\" MIN., R-30 AVG.); 1 1/2\" TYPE B 20 GA. GALV. DECK ON K-JOISTS @ 5'-0\" O.C."],
-    ["R-2", "LINK ROOF", "SAME AS R-1; TAPERED 1/4\":12 TO SCUPPER ON NORTH PARAPET; 12K1 @ 5'-0\" O.C."],
+     "TO DRAIN LINE (A-103, R-30 AVG.); SELF-ADHERED VAPOR RETARDER; 1 1/2\" TYPE B DECK; K-JOISTS @ 5'-0\""],
+    ["R-2", "LINK ROOF", "60-MIL EPDM; 1/2\" COVER BD.; (2) LAYERS 2\" POLYISO + TAPERED 1/4\":12 TO SCUPPER; "
+     "1 1/2\" TYPE B DECK ON 12K1 @ 5'-0\" O.C."],
     ["F-1", "SLAB ON GRADE", "5\" CONC. (4,000 PSI) W/ 6x6-W2.9xW2.9 WWF; 15-MIL VAPOR RETARDER; 6\" CA-6 "
      "BASE; 2\" XPS PERIMETER INSUL. 2'-0\" DEEP"],
     ["F-2", "LEVEL 2 FLOOR", "3 1/4\" LW CONC. ON 3\" 20 GA. COMPOSITE DECK (6 1/4\" TOTAL) ON STEEL BEAMS"],
@@ -2017,8 +2022,9 @@ SECTION_NOTES = [
     "CORRIDORS AND LINK 9'-6\", TOILETS / WORKROOM 9'-0\" AFF.",
     "INTERIOR CMU PARTITIONS EXTEND TO UNDERSIDE OF DECK; WHERE A BEAM RUNS ALONG THE WALL (GRIDS B AND C) "
     "THE CMU STOPS AT THE UNDERSIDE OF THE BEAM WITH DEFLECTION ANCHORS.",
-    "SPANDREL BEAMS AND GIRDERS AT EXTERIOR WALLS ARE SET INBOARD OF THE CONTINUOUS CMU BACKUP (OUTER "
-    "FLANGE 1/2\" FROM INSIDE FACE OF CMU).",
+    "AT LEVEL 2 THE SPANDREL / GIRDER IS ON THE GRID WITHIN THE CMU BACKUP: CMU STOPS AT 112'-0\" AND "
+    "RESUMES ON THE SLAB EDGE AT 114'-0\" (9/A-501). AT THE ROOF THE SPANDREL IS INBOARD (OUTER FLANGE "
+    "1/2\" FROM INSIDE FACE OF CMU) AND THE CMU IS CONTINUOUS TO THE PARAPET (8/A-501).",
     "ROOF DRAINS, OVERFLOW DRAINS, LEADERS AND RTUs BY DIV. 22 / 23 (NOT IN THIS SET), SHOWN FOR "
     "COORDINATION. TAPERED INSULATION LAYOUT AND CRICKETS PER A-103.",
     "EXISTING CONSTRUCTION SHOWN SCREENED; FIELD VERIFY EXISTING FLOOR, ROOF AND OPENING ELEVATIONS.",

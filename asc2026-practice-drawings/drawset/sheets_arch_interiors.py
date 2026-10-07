@@ -2077,8 +2077,8 @@ A602_NOTES = [
     "ELEVATIONS SHOW LEVEL 1 ROOMS; LEVEL 2 ROOMS 207 / 209 / 211 / 210 ARE IDENTICAL. SEE A-401 FOR PLANS, TAGS AND THE TOILET ACCESSORY SCHEDULE.",
     "CT-1 WALL TILE: FROM TOP OF PT-1B BASE (6\" AFF) TO 7'-0\" AFF (6'-6\" FIELD INCL. BULLNOSE CAP COURSE) ON ALL WALLS OF 107, 109, 111 (+ L2). "
     "TILE STOPS AT HM FRAMES AND RECESSED ACCESSORIES; RETURN TILE INTO NO OPENINGS. PNT-1 ABOVE TO CEILING.",
-    "TAKEOFF BASIS: CT-1 SF = ROOM CLEAR PERIMETER x 6'-6\" LESS DOOR MO (3'-4\" x 6'-6\") AND TA-8 RECESSES (1'-5\" x 4'-6\"); "
-    "PT-1B LF = CLEAR PERIMETER LESS DOOR MO WIDTHS. CLEAR ROOM DIMENSIONS ARE ON A-401.",
+    "TAKEOFF BASIS: CT-1 SF = (ROOM CLEAR PERIMETER LESS DOOR MO WIDTHS) x 6'-6\" (TOP OF 6\" PT-1B BASE TO 7'-0\"); "
+    "NO DEDUCTION FOR RECESSED ACCESSORIES. PT-1B LF = CLEAR PERIMETER LESS DOOR MO WIDTHS. CLEAR ROOM DIMENSIONS ARE ON A-401.",
     "PARTITIONS (TP-1) AND ACCESSORIES ARE INSTALLED OVER FINISHED TILE: USE SS FASTENERS INTO GROUTED CMU OR FRT BLOCKING; SEAL PENETRATIONS.",
     "MOUNTING HEIGHTS PER ICC A117.1-2017 / 2010 ADA STANDARDS (ADULT DIMENSIONS); SEE TYPICAL DIAGRAMS 16 AND 17.",
     "PLUMBING FIXTURES (WC, UR, LAV, MS) BY DIV. 22 - SHOWN FOR COORDINATION. PROVIDE CARRIER BLOCKING / GROUTED CELLS AS REQUIRED.",
@@ -2141,7 +2141,714 @@ def a602(sh):
 
 
 # =========================================================================================
+# A-402  STAIR SECTIONS & DETAILS
+# =========================================================================================
+from shapely.geometry import Polygon as _Poly, box as _box   # noqa: E402
+
+L1E, L2E, LANDE, ROOFE, PARE = 100.0, 114.0, 107.0, 128.0, 131 + 4 * IN
+F_LO, F_HI = 5.0 + CMUh + 0.5, 0.0      # placeholders, replaced below
+_g1 = PL.stair_geom("ST-1")
+F_LO, F_HI = _g1["f_lo"], _g1["f_hi"]   # 5.818 / 15.901 (same in section coords for both stairs)
+Y_IN = _g1["y0"]                         # 0.318 inside face of exterior wall (section coords)
+Y_N = _g1["y1"]                          # 29.682 inside face of corridor wall
+C10_D = 10 * IN
+PITCH = math.atan2(RISER, TREAD)
+
+
+def flight_profile(h_b, z_b, s):
+    """sawtooth nosing profile of a flight; h_b = bottom riser line, s = run direction (+1/-1)."""
+    pts = [(h_b, z_b)]
+    for k in range(12):
+        h = h_b + s * k * TREAD
+        pts.append((h, z_b + (k + 1) * RISER))
+        if k < 11:
+            pts.append((h + s * TREAD, z_b + (k + 1) * RISER))
+    return pts
+
+
+def nosing_z(h, h_b, z_b, s):
+    return z_b + RISER + s * (h - h_b) * (RISER / TREAD)
+
+
+def stringer_poly(h_b, z_b, s, top_off=1.5 * IN):
+    """C10 stringer band (elevation) clipped at the floor and the landing header."""
+    h_t = h_b + s * 11 * TREAD
+    dz = C10_D / math.cos(PITCH)
+    ha, hb = h_b - s * 3.0, h_t + s * 3.0
+
+    def zt(h):
+        return nosing_z(h, h_b, z_b, s) + top_off
+    band = _Poly([(ha, zt(ha)), (hb, zt(hb)), (hb, zt(hb) - dz), (ha, zt(ha) - dz)])
+    lo, hi = sorted((h_b - s * 0.6, h_t - s * 0.02))
+    clip = _box(lo, z_b, hi, z_b + 30)
+    g = band.intersection(clip)
+    return g
+
+
+def rail_line(h_b, z_b, s, ht, ext_bot=TREAD, ext_top=1.0):
+    """handrail / guard rail centerline at height ht above the nosing line incl. extensions."""
+    h_t = h_b + s * 11 * TREAD
+    p0 = (h_b - s * ext_bot, nosing_z(h_b - s * ext_bot, h_b, z_b, s) + ht)
+    p1 = (h_t, nosing_z(h_t, h_b, z_b, s) + ht)
+    pts = [p0, p1]
+    if ext_top:
+        pts.append((h_t + s * ext_top, p1[1]))
+    return pts
+
+
+def _wall_hatch(v, x0, z0, x1, z1, lw="heavy"):
+    v.rect(x0, z0, x1 - x0, z1 - z0, lw=lw, fill="white", hatch="ansi31",
+           hatch_kw=dict(spacing=0.045))
+
+
+def _ibeam(v, hc, ztop, d, bf, lw="thin"):
+    tf = 0.04
+    tw = 0.025
+    v.polygon([(hc - bf / 2, ztop), (hc + bf / 2, ztop), (hc + bf / 2, ztop - tf), (hc + tw / 2, ztop - tf),
+               (hc + tw / 2, ztop - d + tf), (hc + bf / 2, ztop - d + tf), (hc + bf / 2, ztop - d),
+               (hc - bf / 2, ztop - d), (hc - bf / 2, ztop - d + tf), (hc - tw / 2, ztop - d + tf),
+               (hc - tw / 2, ztop - tf), (hc - bf / 2, ztop - tf)], lw=lw, fill="g50")
+
+
+def _channel(v, h_web, ztop, d=C10_D, bf=2.6 * IN, toward=1, lw="thin"):
+    t = 0.035
+    a = h_web
+    b = h_web + toward * bf
+    v.polygon([(a, ztop), (b, ztop), (b, ztop - t), (a + toward * t, ztop - t), (a + toward * t, ztop - d + t),
+               (b, ztop - d + t), (b, ztop - d), (a, ztop - d)], lw=lw, fill="g50")
+
+
+def stair_section(sh, ox, oy, name):
+    st1 = name == "ST-1"
+    v = sh.view(ox, oy, Q, mx=-3.0, my=94.6)
+    sm = TXT["small"]
+    ns = TXT["small"]
+    # ---------------- foundations / slab on grade
+    v.rect(-1.6, 95 + 4 * IN, 2.5, 1.0, lw="thin", fill="white", hatch="concrete",
+           hatch_kw=dict(scale=0.7))
+    v.polygon([(-1.0, 96 + 4 * IN), (Y_IN, 96 + 4 * IN), (Y_IN, 99 + 4 * IN), (-M.EW_OUT + 0.3, 99 + 4 * IN),
+               (-M.EW_OUT + 0.3, 99.0), (-1.0, 99.0)], lw="thin", fill="white", hatch="concrete",
+              hatch_kw=dict(scale=0.7))
+    v.line((-3.0, 99 + 4 * IN), (-1.0, 99 + 4 * IN), lw="thin")
+    v.hatch([[(-3.0, 96.2), (-1.0, 96.2), (-1.0, 99 + 4 * IN), (-3.0, 99 + 4 * IN)]], "earth",
+            spacing=0.12)
+    v.rect(Y_IN, 100 - 5 * IN, 32.5 - Y_IN, 5 * IN, lw="thin", fill="white", hatch="concrete",
+           hatch_kw=dict(scale=0.7))
+    v.hatch([[(Y_IN, 99.08), (32.5, 99.08), (32.5, 100 - 5 * IN), (Y_IN, 100 - 5 * IN)]], "gravel")
+    v.line((Y_IN, 99.08), (32.5, 99.08), lw="hair")
+    v.polygon([(29.0, 100 - 5 * IN), (31.0, 100 - 5 * IN), (31.0, 99.0), (29.0, 99.0)], lw="thin",
+              fill="white", hatch="concrete", hatch_kw=dict(scale=0.7))
+    v.line((Y_IN, 100.0), (32.5, 100.0), lw="heavy")
+    # ---------------- exterior wall (cut through W-C) + parapet
+    sill, head = 103 + 4 * IN, 122.0
+    cmu0, cmu1 = -CMUh, CMUh
+    br0, br1 = -M.EW_OUT, -M.EW_LAYERS[3][1]
+    ins0, ins1 = -M.EW_LAYERS[1][2], -M.EW_LAYERS[1][1]
+    for z0, z1 in ((99 + 4 * IN, sill), (head, PARE)):
+        _wall_hatch(v, cmu0, z0, cmu1, z1)
+        v.rect(ins0, z0, ins1 - ins0, z1 - z0, lw="fine", fill="g15")
+        zb0 = 99.0 if z0 < 100 else z0
+        v.rect(br0, zb0, br1 - br0, z1 - zb0, lw="heavy", fill="white", hatch="brick",
+               hatch_kw=dict(spacing=0.022))
+    # W-C storefront (section at center of strip): sill, head, horizontal mullions, glass
+    fr0, fr1 = -1.0 * IN, -5.5 * IN
+    v.rect(fr1, sill, fr0 - fr1, head - sill, lw="fine", fill="white")
+    v.line(((fr0 + fr1) / 2, sill), ((fr0 + fr1) / 2, head), lw="hair")
+    for zm in [sill + k * (head - sill) / 4 for k in range(1, 4)] + [sill + 0.1, head - 0.1]:
+        v.rect(fr1 - 0.02, zm - 0.1, fr0 - fr1 + 0.04, 0.2, lw="fine", fill="g40")
+    v.polygon([(br0 - 0.1, sill - 0.05), (cmu1, sill - 0.05), (cmu1, sill), (br0 - 0.1, sill + 0.08)],
+              lw="fine", fill="g40")
+    v.rect(br0, head, cmu1 - br0, 0.67, lw="fine", fill="g20")          # lintel / bond beam
+    v.rect(br0 - 0.12, PARE, cmu1 - br0 + 0.24, 0.35, lw="thin", fill="white")
+    v.polyline([(br0 - 0.12, PARE - 0.25), (br0 - 0.12, PARE + 0.35), (cmu1 + 0.12, PARE + 0.42),
+                (cmu1 + 0.12, PARE - 0.2)], lw="thin")
+    # ---------------- corridor wall (P2) cut through the stair door at L1 and L2
+    for zf, zt in ((L1E, 112.0), (L2E, 126.4)):
+        _wall_hatch(v, Y_N, zf + 7 + 4 * IN, 30 + CMUh, zt)
+        v.rect(Y_N, zf + 7.0, 2 * CMUh, 4 * IN, lw="thin", fill="g40")
+        v.rect(29.95, zf, 0.1, 7.0, lw="fine", fill="g20")
+    # ---------------- level 2 slab, beams, landing header
+    v.rect(F_HI, L2E - 6.25 * IN, 32.5 - F_HI, 6.25 * IN, lw="heavy", fill="white", hatch="concrete",
+           hatch_kw=dict(scale=0.7))
+    _ibeam(v, 30.0, L2E - 6.25 * IN, 17.7 * IN, 6.0 * IN)
+    _channel(v, F_HI, L2E - 0.05, toward=1)
+    # ---------------- roof
+    v.rect(-0.2 + Y_IN, ROOFE, 32.5 - Y_IN + 0.2, 1.5 * IN, lw="thin", fill="g40")
+    v.polygon([(CMUh, ROOFE + 1.5 * IN), (32.5, ROOFE + 1.5 * IN), (32.5, ROOFE + 0.42),
+               (CMUh, ROOFE + 0.62)], lw="fine", fill="g10")
+    v.line((CMUh, ROOFE + 0.62), (CMUh, PARE - 0.4), lw="thin")
+    _ibeam(v, 30.0, ROOFE, 17.7 * IN, 6.0 * IN)
+    _ibeam(v, Y_IN + 0.3, ROOFE - 2.5 * IN, 15.7 * IN, 5.5 * IN)
+    jt, jb = ROOFE, ROOFE - 22 * IN
+    v.line((Y_IN + 0.3, jt), (29.7, jt), lw="fine", color="screen")
+    v.line((Y_IN + 1.0, jb), (29.0, jb), lw="fine", color="screen")
+    x = Y_IN + 1.0
+    k = 0
+    while x < 29.0:
+        x2 = min(x + 2.0, 29.0)
+        v.line((x, jb), (x2, jt) if k % 2 == 0 else (x2, jb), lw="hair", color="screen")
+        v.line((x, jb), (x + 1.0, jt), lw="hair", color="screen")
+        v.line((x + 1.0, jt), (x2, jb), lw="hair", color="screen")
+        x = x2
+        k += 1
+    # ---------------- beyond: far wall exterior door (L1)
+    if st1:
+        d = M.OPENING_BY_ID["ST1-B"]
+        da, db = d.lo, d.hi
+    else:
+        d = M.OPENING_BY_ID["ST2-B"]
+        da, db = 72 - d.hi, 72 - d.lo
+    v.rect(da, L1E, db - da, 7 + 4 * IN, lw="fine", fill="white")
+    v.rect(da + 2 * IN, L1E, db - da - 4 * IN, 7.0, lw="fine")
+    v.rect(da + 0.35, L1E + 3.3, db - da - 0.7, 0.18, lw="hair", fill="g30")
+    # ---------------- beyond flight (intermediate landing -> L2) : light
+    bf_hb, bf_zb, bf_s = F_LO, LANDE, +1
+    g = stringer_poly(bf_hb, bf_zb, bf_s)
+    v.geom(g, lw="fine", fill="white", color="screen")
+    v.polyline(flight_profile(bf_hb, bf_zb, bf_s), lw="fine", color="screen")
+    for ht in (36 * IN, 42 * IN):
+        v.polyline(rail_line(bf_hb, bf_zb, bf_s, ht, ext_top=1.0), lw="fine", color="screen")
+    # ---------------- cut flight (L1 -> intermediate landing) + its far (well-side) stringer & guard
+    cf_hb, cf_zb, cf_s = F_HI, L1E, -1
+    g = stringer_poly(cf_hb, cf_zb, cf_s)
+    v.geom(g, lw="thin", fill="white")
+    gr_top = rail_line(cf_hb, cf_zb, cf_s, 42 * IN, ext_bot=0.2, ext_top=0)
+    gr_bot = rail_line(cf_hb, cf_zb, cf_s, 3.5 * IN, ext_bot=0.2, ext_top=0)
+    hr = rail_line(cf_hb, cf_zb, cf_s, 36 * IN, ext_bot=TREAD, ext_top=0)
+    # pickets 4" max clear
+    hh = cf_hb + 0.1
+    while hh > F_LO + 0.05:
+        za = nosing_z(hh, cf_hb, cf_zb, cf_s) + 3.5 * IN
+        v.line((hh, za), (hh, za + 38.5 * IN), lw="hair")
+        hh -= 4.5 * IN
+    for pts, w in ((gr_top, "thin"), (gr_bot, "fine"), (hr, "thin")):
+        v.polyline(pts, lw=w)
+    for hp in (cf_hb - 0.15, (cf_hb + F_LO) / 2, F_LO + 0.15):
+        z0 = nosing_z(hp, cf_hb, cf_zb, cf_s) - 0.3
+        v.line((hp, z0), (hp, nosing_z(hp, cf_hb, cf_zb, cf_s) + 42 * IN), lw="thin")
+    prof = flight_profile(cf_hb, cf_zb, cf_s)
+    under = [(h, z - 1.6 * IN) for h, z in prof]
+    v.polygon(prof + under[::-1], lw=None, fill="g40")
+    v.polyline(prof, lw="heavy")
+    v.polyline(under, lw="fine")
+    # ---------------- intermediate landing (cut)
+    v.rect(Y_IN + 0.02, LANDE - 3.5 * IN, F_LO - Y_IN - 0.02, 3.5 * IN, lw="heavy", fill="g40")
+    _channel(v, F_LO, LANDE - 3.5 * IN, toward=-1)
+    _channel(v, Y_IN + 0.32, LANDE - 3.5 * IN, toward=1)
+    # rail around the well at the intermediate landing (horizontal) + guard at L2 landing edge
+    v.line((F_LO + 0.15, LANDE + 3.0), (F_LO - 0.6, LANDE + 3.0), lw="thin")
+    v.line((F_HI + 0.08, L2E), (F_HI + 0.08, L2E + 3.5), lw="thin")
+    v.rect(F_HI + 0.02, L2E + 3.5 - 0.06, 0.13, 0.12, lw="fine", fill="g40")
+    v.line((F_HI + 0.08, L2E + 0.33), (F_HI + 0.55, L2E + 0.33), lw="hair")
+    # stringer base at L1
+    v.rect(cf_hb + 0.05, L1E, 0.55, 0.05, lw="fine", fill="black")
+    # ---------------- annotations: levels
+    xr = 33.2
+    for z, lab in ((L1E, "LEVEL 1"), (LANDE, "INTERMEDIATE LANDING"), (L2E, "LEVEL 2"),
+                   (ROOFE, "ROOF (T.O. STEEL)"), (PARE, "T.O. PARAPET")):
+        v.line((32.6 if z != PARE else 0.5, z), (xr, z), lw="hair", dash="center")
+        level_marker(v, xr, z, lab, side="r")
+    for z, lab in ((sill, "W-C SILL"), (head, "W-C HEAD")):
+        level_marker(v, -2.4, z, lab, side="l")
+        v.line((-2.4, z), (br0 - 0.15, z), lw="hair", dash="center")
+    # vertical dims
+    v.dim_chain([(31.6, L1E), (31.6, LANDE), (31.6, L2E)], -0.0, size=sm,
+                text="12 R @ 7\" = 7'-0\"") if False else None
+    v.dim((31.7, L1E), (31.7, LANDE), 0, text="12R @ 7\" = 7'-0\"", size=sm)
+    v.dim((31.7, LANDE), (31.7, L2E), 0, text="12R @ 7\" = 7'-0\"", size=sm)
+    v.dim((31.7, L2E), (31.7, ROOFE), 0, size=sm)
+    # horizontal dims (below slab)
+    v.dim_chain([(Y_IN, 97.6), (F_LO, 97.6), (F_HI, 97.6), (Y_N, 97.6)], 0, size=sm)
+    v.text(((F_LO + F_HI) / 2, 97.3), "11 TREADS @ 11\"", size=sm, anchor="c", valign="top")
+    # ---------------- notes
+    def nt(tip, at, text, side="r"):
+        note(v, tip, at, text, side=side, size=ns)
+    nt((10.6, nosing_z(10.6, cf_hb, cf_zb, cf_s) - 0.05), (17.0, 104.0),
+       "RST-1 RUBBER TREAD W/ INTEGRAL\nRISER ON 14 GA. STEEL PAN W/\n1 1/2\" CONC. FILL - 4/A-402")
+    nt((14.2, nosing_z(14.2, cf_hb, cf_zb, cf_s) - 0.7), (17.0, 101.55),
+       "C10x15.3 STRINGER (TYP.)\nBASE 8/A-402")
+    nt((2.2, LANDE - 0.3), (1.0, 104.6), "RF-1 ON 2\" CONC. FILL,\n14 GA. PAN, C10\nFRAMING - 7/A-402")
+    nt((13.0, nosing_z(13.0, cf_hb, cf_zb, cf_s) + 3.0), (17.0, 110.5),
+       "HANDRAIL 36\" ABOVE NOSINGS,\nEXTEND 1 TREAD AT BOTTOM\n5/A-402")
+    nt((9.5, nosing_z(9.5, cf_hb, cf_zb, cf_s) + 3.5), (17.0, 112.45), "42\" GUARD AT WELL\n6/A-402")
+    nt((F_HI + 0.12, L2E + 2.8), (20.0, 118.6), "42\" GUARD AT L2 LANDING EDGE\n6/A-402")
+    nt((F_HI + 0.15, L2E - 0.4), (20.0, 116.6), "C10 STAIR HEADER;\nL2 COMPOSITE SLAB, SEE S-102")
+    nt((br0 + 0.3, 116.0), (2.6, 119.6), "W-C STOREFRONT STRIP\n(TEMPERED), SEE A-711")
+    nt((14.0, jb + 0.5), (14.0, 124.4), "ROOF JOISTS / DECK, SEE S-103")
+    nt((da + 0.6, L1E + 6.8), (21.2, 108.5),
+       ("ST1-B" if st1 else "ST2-B") + " EXT. EXIT DOOR (BEYOND)", side="r")
+    btext(v, (24.0, 121.5), "STAIR SHAFT (P2, 1-HR)\nCONTINUES TO ROOF;\nSTAIR SERVES L1 - L2 ONLY",
+          size=TXT["small"])
+    btext(v, (Y_N + 0.0, L1E + 3.6), ("ST1-A" if st1 else "ST2-A"), size=TXT["tiny"])
+    btext(v, (Y_N + 0.0, L2E + 3.6), ("ST1-C" if st1 else "ST2-C"), size=TXT["tiny"])
+    btext(v, (31.5, 106.0) if False else (31.4, 99.55), "CORR.", size=TXT["tiny"])
+    break_line(v, (32.5, 99.0), (32.5, 114.5), zig=0.08)
+    # detail callouts
+    for (c, n_) in (((cf_hb - 3 * TREAD, nosing_z(cf_hb - 3 * TREAD, cf_hb, cf_zb, cf_s)), 4),):
+        pass
+    return v
+
+
+def pit_section(sh, ox, oy, s=3 / 8):
+    """elevator pit section N-S through the entrance, looking east. h = 30 - y."""
+    v = sh.view(ox, oy, s, mx=-2.5, my=91.0)
+    H = HOIST
+    hN, hS = 30 - H["N"], 30 - H["S"]         # 0.318 .. 8.682
+    pit, mat = 95.0, 95.0 - 14 * IN
+    sm = TXT["small"]
+    # mat + thickened at sump
+    sx0, sx1 = 30 - (SUMP[1] + 2.0), 30 - SUMP[1]
+    v.polygon([(-1.7, mat), (sx0 - 0.5, mat), (sx0 - 0.5, 92.0), (sx1 + 0.5, 92.0), (sx1 + 0.5, mat),
+               (10.7, mat), (10.7, pit), (sx1, pit), (sx1, pit - 2.0), (sx0, pit - 2.0), (sx0, pit),
+               (-1.7, pit)], lw="heavy", fill="white", hatch="concrete", hatch_kw=dict(scale=0.7))
+    v.rect(sx0 + 0.05, pit - 0.06, sx1 - sx0 - 0.1, 0.06, lw="fine", fill="g40")
+    # pit walls 12"
+    for a, b in ((-0.682, hN), (hS, hS + 1.0)):
+        v.rect(a, pit, b - a, L1E - pit, lw="heavy", fill="white", hatch="concrete",
+               hatch_kw=dict(scale=0.7))
+    # slab on grade both sides + base
+    v.rect(-2.5, L1E - 5 * IN, -0.682 + 2.5, 5 * IN, lw="thin", fill="white", hatch="concrete",
+           hatch_kw=dict(scale=0.7))
+    v.rect(hS + 1.0, L1E - 5 * IN, 11.5 - hS - 1.0, 5 * IN, lw="thin", fill="white",
+           hatch="concrete", hatch_kw=dict(scale=0.7))
+    v.hatch([[(-2.5, mat - 0.5), (11.5, mat - 0.5), (11.5, L1E - 5 * IN), (-2.5, L1E - 5 * IN)]],
+            "earth", spacing=0.12) if False else None
+    v.line((-2.0, mat - 0.5), (11.2, mat - 0.5), lw="hair")
+    # CMU hoistway walls above (P2)
+    for a, b in ((-CMUh, CMUh), (9.0 - CMUh, 9.0 + CMUh)):
+        pass
+    _wall_hatch(v, 9.0 - CMUh, L1E, 9.0 + CMUh, 109.0)
+    _wall_hatch(v, -CMUh, 107 + 8 * IN, CMUh, 109.0)
+    v.rect(-CMUh, 107 + 8 * IN - 0.02, 2 * CMUh, 0.67, lw="thin", fill="g40")
+    # entrance: sill, door panels, header
+    v.rect(-0.2, L1E - 0.12, 0.55, 0.12, lw="fine", fill="g50")
+    v.rect(0.05, L1E, 0.08, 7.0, lw="fine", fill="g30")
+    v.rect(0.15, L1E, 0.08, 7.0, lw="fine", fill="g30")
+    v.rect(-CMUh, L1E + 7.0, 2 * CMUh, 8 * IN, lw="fine", fill="white")
+    # car at L1 (dashed), buffers, rails, ladder, sump
+    car0, car1 = hN + 0.42, hN + 0.42 + ft(5, 5)
+    v.rect(car0, L1E - 0.5, car1 - car0, 0.5, lw="fine", dash="hidden")
+    v.rect(car0, L1E, car1 - car0, 8.0, lw="fine", dash="hidden")
+    for hb_ in ((car0 + car1) / 2,):
+        v.rect(hb_ - 0.3, pit, 0.6, 0.2, lw="fine", fill="g40")
+        v.rect(hb_ - 0.15, pit + 0.2, 0.3, 1.2, lw="fine", fill="white")
+    v.rect(hS - 1.2, pit, 0.5, 0.2, lw="fine", fill="g40")
+    v.rect(hS - 1.1, pit + 0.2, 0.3, 1.0, lw="fine", fill="white")
+    xr = hS - 1.0
+    v.line((hN + 3.5, pit), (hN + 3.5, 109.0), lw="hair", color="screen")
+    # pit ladder (on entrance wall, strike side) - side view
+    lx = hN + 7 * IN + 0.1
+    v.line((lx, pit), (lx, L1E + 4.0), lw="thin")
+    for z in [pit + 1.0 * k for k in range(1, 9)]:
+        if z < L1E + 4.0:
+            v.circle((lx, z), 0.05, lw="hair", fill="black")
+    for z in (pit + 1.5, L1E - 1.0, L1E + 2.5):
+        v.line((hN, z), (lx, z), lw="fine")
+    v.line((lx, L1E + 4.0), (hN, L1E + 4.0), lw="fine")
+    # sump
+    v.rect(sx0 + 0.25, pit - 0.25, 0.4, 0.25, lw="hair", fill="g20")
+    # level markers
+    for z, lab in ((L1E, "LEVEL 1"), (pit, "PIT FLOOR"), (mat, "B.O. MAT")):
+        v.line((10.8, z), (11.4, z), lw="hair", dash="center")
+        level_marker(v, 11.4, z, lab, side="r")
+    v.dim((-1.9, pit), (-1.9, L1E), 0, size=sm, text="5'-0\" PIT")
+    v.dim((-1.9, mat), (-1.9, pit), 0, size=sm)
+    v.dim((hN, 108.3), (hS, 108.3), 0, size=sm)
+    v.dim((sx0, 91.55), (sx1, 91.55), 0, size=sm)
+    v.dim((lx + 0.45, L1E), (lx + 0.45, L1E + 4.0), 0, size=sm, text="4'-0\"", flip_text=True)
+    ns = TXT["tiny"] * 1.15
+
+    def nt(tip, at, text, side="r"):
+        note(v, tip, at, text, side=side, size=ns)
+    nt((lx, 97.5), (2.2, 97.0) if False else (2.4, 98.6), "PIT LADDER, STEEL,\n16\" RUNGS, TO 48\" ABOVE SILL")
+    nt(((sx0 + sx1) / 2, pit - 1.0), (4.0, 92.6) if False else (3.3, 93.3),
+       "SUMP 24\"x24\"x24\" W/ GRATE\n(PUMP BY DIV. 22)", side="l")
+    nt(((car0 + car1) / 2, pit + 1.2), (3.6, 96.9), "CAR / CWT BUFFERS\n(BY ELEV. CONTR.)")
+    nt((-0.4, 96.5), (-1.2, 101.6) if False else (-1.5, 102.6), "12\" CONC. PIT\nWALLS W/\nWATERSTOP", side="l")
+    nt((0.1, L1E + 6.0), (1.6, 105.2), "3'-6\" x 7'-0\" 2-SPEED\nENTRANCE (BY ELEV.)")
+    btext(v, ((car0 + car1) / 2, L1E + 4.2), "CAR AT\nLEVEL 1", size=TXT["tiny"])
+    break_line(v, (-1.0, 109.0), (10.0, 109.0), zig=0.08)
+    btext(v, (4.5, 109.6), "HOISTWAY CONTINUES TO ROOF", size=TXT["tiny"])
+    return v
+
+
+# ---- 1 1/2" details -----------------------------------------------------------------------
+NOS = 1 * IN       # nosing projection
+FILL = 1.5 * IN    # concrete fill in pans
+
+
+def _steps(x_r0, z0, n, sd, first_riser=True):
+    """cut tread/riser profile for n steps ascending in direction sd; first riser face at x_r0, floor z0.
+    Returns (fill polygons, pan polyline, rubber polylines)."""
+    R, T = RISER, TREAD
+    fills, pan, rub = [], [], []
+    for k in range(n):
+        xr = x_r0 + sd * k * T                 # riser face of step k
+        zt = z0 + (k + 1) * R                  # tread surface of step k
+        xn = xr - sd * NOS                      # nosing
+        xb = xr + sd * T                        # riser face of next step (back of tray)
+        fills.append([(xn, zt - FILL), (xb, zt - FILL), (xb, zt), (xn, zt)])
+        if k == 0 and first_riser:
+            pan += [(xr, z0 + 0.0), (xr, zt - FILL), (xn, zt - FILL)]
+        pan += [(xn, zt - FILL), (xn, zt), (xn, zt - FILL), (xb, zt - FILL), (xb, zt + R - FILL)]
+        pan += [(xb - sd * NOS, zt + R - FILL)] if k < n - 1 else []
+        rub.append([(xn - sd * 0.01, zt - 0.6 * IN), (xn - sd * 0.01, zt + 0.25 * IN),
+                    (xb, zt + 0.25 * IN)])
+        rub.append([(xb - sd * 0.12 * IN, zt + 0.25 * IN), (xb - sd * 0.12 * IN, zt + R - FILL)])
+    return fills, pan, rub
+
+
+def _draw_steps(v, x_r0, z0, n, sd, first_riser=True):
+    fills, pan, rub = _steps(x_r0, z0, n, sd, first_riser)
+    for f in fills:
+        v.polygon(f, lw="fine", fill="white", hatch="concrete", hatch_kw=dict(scale=0.45))
+    v.polyline(pan, lw="thin")
+    for r in rub:
+        v.polyline(r, lw="med")
+
+
+def det_tread(sh, ox, oy, s=1.5):
+    """two-and-a-half steps of the steel pan stair, section along the run (ascending to the right)."""
+    v = sh.view(ox, oy, s)
+    R, T = RISER, TREAD
+    sm = TXT["tiny"] * 1.15
+    # stringer beyond (hidden lines), clip angles under trays
+    zt = lambda x: R + (x + NOS) * R / T + 1.5 * IN
+    dz = C10_D / math.cos(PITCH)
+    xa, xb = -0.45, 2 * T + 0.35
+    for off in (0, dz):
+        v.line((xa, zt(xa) - off), (xb, zt(xb) - off), lw="fine", dash="hidden")
+    _draw_steps(v, 0.0, 0.0, 3, +1, first_riser=False)
+    for k in range(3):
+        xr = k * T
+        v.polyline([(xr + 0.25, (k + 1) * R - FILL), (xr + 0.25, (k + 1) * R - FILL - 0.17),
+                    (xr + 0.42, (k + 1) * R - FILL - 0.17)], lw="fine")
+    break_line(v, (xa, -0.05), (xa, 0.95), zig=0.06)
+    v.dim((-NOS, 3 * R + 0.42), (T - NOS, 3 * R + 0.42), 0, text="11\" TREAD", size=sm) \
+        if False else v.dim((T - NOS, 3 * R + 0.35), (2 * T - NOS, 3 * R + 0.35), 0, text="11\"",
+                            size=sm)
+    v.dim((-0.3, R), (-0.3, 2 * R), 0, text="7\"", size=sm)
+    v.dim((T - NOS, 2 * R + 0.12), (T, 2 * R + 0.12), 0, text="1\"", size=sm)
+    v.dim((3 * T + 0.12, 3 * R - FILL), (3 * T + 0.12, 3 * R), 0, text="1 1/2\"", size=sm,
+          flip_text=True)
+    note(v, (2 * T - NOS + 0.25, 3 * R + 0.25 * IN), (3.05, 3 * R + 0.55),
+         "RST-1 RUBBER TREAD W/ INTEGRAL RISER +\nCONTRASTING NOSING, FULL ADHESIVE", side="r", size=sm)
+    note(v, (2 * T - NOS + 0.5, 3 * R - 0.06), (3.05, 3 * R - 0.05), "1 1/2\" CONC. FILL", side="r",
+         size=sm)
+    note(v, (2 * T + 0.3, 3 * R - FILL), (3.05, 3 * R - 0.42), "14 GA. FORMED STEEL PAN", side="r",
+         size=sm)
+    note(v, (T + 0.42, 2 * R - FILL - 0.17), (3.05, 2 * R - 0.55),
+         "L2x2x1/4 CLIP ANGLE EA. END,\nWELD TO STRINGER", side="r", size=sm)
+    note(v, (1.3, zt(1.3) - dz), (3.05, 0.45), "C10x15.3 STRINGER (BEYOND)", side="r", size=sm)
+    return v
+
+
+def det_rail_bracket(sh, ox, oy, s=3.0):
+    v = sh.view(ox, oy, s)
+    t = M.CMU_T
+    sm = TXT["tiny"] * 1.15
+    v.rect(-t, -0.45, t, 0.85, lw="heavy", fill="white", hatch="ansi31", hatch_kw=dict(spacing=0.06))
+    break_line(v, (-t - 0.08, -0.45), (0.06, -0.45), zig=0.04)
+    break_line(v, (-t - 0.08, 0.4), (0.06, 0.4), zig=0.04)
+    od = 1.66 * IN
+    cx = 1.5 * IN + od / 2
+    v.circle((cx, 0), od / 2, lw="thin", fill="g40")
+    v.circle((cx, 0), od / 2 - 0.012, lw="hair", fill="white")
+    v.rect(0, -0.2, 0.025, 0.2, lw="fine", fill="g50")
+    v.polyline([(0.025, -0.1), (0.07, -0.1), (0.07, -od / 2 - 0.06), (cx, -od / 2 - 0.06),
+                (cx, -od / 2)], lw="thin")
+    v.line((-0.33, -0.15), (0.01, -0.15), lw="fine")
+    v.line((-0.33, -0.05), (0.01, -0.05), lw="fine")
+    v.dim((0, 0.2), (1.5 * IN, 0.2), 0, text="1 1/2\" MIN.", size=sm)
+    v.dim((0, -0.32), (1.5 * IN + od, -0.32), 0, text="3 3/16\" (4 1/2\" MAX.)", size=sm)
+    note(v, (cx + od / 2, 0.02), (0.38, 0.12), "1 1/4\" SCH. 40 STEEL PIPE (1.66\" O.D.),\nPAINTED; ENDS RETURNED TO WALL", side="r", size=sm)
+    note(v, (0.07, -0.1), (0.38, -0.12), "CAST STEEL WALL BRACKET @ 4'-0\" O.C. MAX.", side="r", size=sm)
+    note(v, (-0.2, -0.15), (0.38, -0.5), "(2) 3/8\" ADHESIVE ANCHORS INTO GROUTED CMU", side="r", size=sm)
+    v.text((-t, -0.62), "TOP OF RAIL 34\"-38\" ABOVE NOSING LINE (36\" TYP.)", size=sm,
+           valign="top")
+    return v
+
+
+def det_guard(sh, ox, oy, s=1.5):
+    """section through well guard at a post: side-mounted to the C10 fascia / stringer, with break."""
+    v = sh.view(ox, oy, s)
+    sm = TXT["tiny"] * 1.15
+    br0, br1 = 1.15, 2.55       # model z hidden by the break (ft above landing)
+    zo = br1 - br0 - 0.25       # shift applied to the upper part
+
+    def Z(z):
+        return z if z <= br0 else z - zo
+    # landing / tread fill + pan + C10 (x<0 = stair side)
+    v.rect(-1.0, -FILL, 1.0 - 0.03, FILL, lw="thin", fill="white", hatch="concrete",
+           hatch_kw=dict(scale=0.5))
+    v.line((-1.0, -FILL), (-0.03, -FILL), lw="thin")
+    _channel(v, 0.0, 0.0, toward=-1, lw="thin")
+    v.line((-1.0, 0), (-0.03, 0), lw="thin")
+    v.rect(-1.0, 0.0, 0.97, 0.25 * IN, lw="fine", fill="g60")
+    # post (side mounted), base plate, bolts
+    pw = 1.5 * IN
+    x0 = 0.25 * IN
+    v.rect(0.0, -8.5 * IN, x0, 6.0 * IN, lw="fine", fill="g60")
+    for z in (-3.5 * IN, -7.0 * IN):
+        v.line((-0.18, z), (x0 + 0.08, z), lw="thin")
+    v.rect(x0, -8.0 * IN, pw, br0 + 8.0 * IN, lw="thin", fill="g30")
+    v.rect(x0, Z(br1), pw, Z(42 * IN) - Z(br1), lw="thin", fill="g30")
+    # top rail, bottom rail, pickets, handrail
+    v.rect(x0 - 0.02, Z(42 * IN), pw + 0.04, 1.5 * IN, lw="thin", fill="g50")
+    v.rect(x0 + pw + 0.04, Z(3.5 * IN), 0.5, 1.0 * IN, lw="fine", fill="g40")
+    for xp in (x0 + pw + 0.12, x0 + pw + 0.3, x0 + pw + 0.48):
+        v.line((xp, Z(4.5 * IN)), (xp, br0), lw="hair")
+        v.line((xp, Z(br1)), (xp, Z(42 * IN)), lw="hair")
+    hr = 1.66 * IN
+    hx = -1.5 * IN - hr / 2
+    v.circle((hx, Z(36 * IN)), hr / 2, lw="thin", fill="g40")
+    v.polyline([(x0, Z(33 * IN)), (-0.02, Z(33 * IN)), (hx, Z(36 * IN) - hr / 2)], lw="fine")
+    for zz in (br0, Z(br1)):
+        break_line(v, (-0.55, zz), (0.85, zz), zig=0.05)
+    v.dim((0.95, 0.0), (0.95, Z(3.5 * IN)), 0, text="3 1/2\"", size=sm, flip_text=True)
+    v.text((0.95, Z(36 * IN)), "HANDRAIL 36\" (34\"-38\")", size=sm, valign="mid")
+    v.text((0.95, Z(42 * IN) + 0.06), "TOP RAIL 42\" MIN.", size=sm, valign="mid")
+    v.text((0.95, Z(br1) + 0.05), "(ABOVE NOSING LINE)", size=sm, valign="mid")
+    note(v, (x0 + pw, 0.6), (0.95, 0.65), "1 1/2\" SQ. HSS POST @ 4'-0\" O.C. MAX.", side="r", size=sm)
+    note(v, (x0 + pw + 0.3, 0.9), (0.95, 0.95), "1/2\" SQ. PICKETS (4\" SPHERE MAX.)", side="r", size=sm)
+    note(v, (x0, -6.0 * IN), (0.95, -0.35), "3/8\" SIDE PLATE + (2) 1/2\" BOLTS\nTO C10 FASCIA / STRINGER",
+         side="r", size=sm)
+    note(v, (-0.05, -0.6), (-0.4, -0.95), "C10x15.3", side="l", size=sm)
+    v.text((-0.55, 0.12), "STAIR / LANDING", size=sm, anchor="c", valign="bot")
+    return v
+
+
+def det_stringer_landing(sh, ox, oy, s=1.5):
+    """stringer to landing header: section through the stair center, stringer beyond."""
+    v = sh.view(ox, oy, s)
+    sm = TXT["tiny"] * 1.15
+    R, T = RISER, TREAD
+    zt = lambda x: -x * R / T + 1.5 * IN
+    dz = C10_D / math.cos(PITCH)
+    xa, xb = 0.02, 2 * T + 0.3
+    g = _Poly([(xa, zt(xa)), (xb, zt(xb)), (xb, zt(xb) - dz), (xa, zt(xa) - dz)])
+    v.geom(g, lw="thin", fill="white")
+    break_line(v, (xb, zt(xb) - dz - 0.05), (xb, zt(xb) + 0.05), zig=0.06)
+    # clip angle + bolts (stringer web to header web)
+    v.rect(0.02, -0.72, 0.28, 0.5, lw="fine", fill="g20")
+    for z in (-0.35, -0.6):
+        v.circle((0.12, z), 0.03, lw="hair", fill="black")
+    # cut steps descending to the right
+    _draw_steps(v, 2 * T, -3 * R, 2, -1)
+    # landing: fill + pan + header C10 (cut)
+    v.rect(-1.3, -2 * IN, 1.3 - 0.03, 2 * IN, lw="thin", fill="white", hatch="concrete",
+           hatch_kw=dict(scale=0.5))
+    v.line((-1.3, -2 * IN - 0.01), (-0.03, -2 * IN - 0.01), lw="thin")
+    v.rect(-1.3, 0, 1.27, 0.12 * IN, lw="fine", fill="g60")
+    _channel(v, 0.0, 0.0, toward=-1, lw="thin")
+    break_line(v, (-1.3, -0.4), (-1.3, 0.15), zig=0.05)
+    note(v, (-0.6, 0.01), (-1.3, 0.45), "RF-1 ON 2\" CONC. FILL ON 14 GA. PAN", side="r", size=sm)
+    note(v, (-0.05, -0.55), (-0.45, -1.15), "C10x15.3 LANDING\nHEADER (SPANS WALL\nTO WALL)", side="l", size=sm)
+    note(v, (0.25, -0.65), (0.9, -1.45), "L4x3x3/8 CLIP ANGLE: (2) 3/4\" A325\nBOLTS TO HEADER, WELD TO STRINGER",
+         side="r", size=sm)
+    note(v, (1.4, zt(1.4) - 0.7), (1.95, -0.55), "C10x15.3 STRINGER", side="r", size=sm)
+    return v
+
+
+def det_stringer_base(sh, ox, oy, s=1.5):
+    """stringer base at the level 1 slab; flight ascends to the left."""
+    v = sh.view(ox, oy, s)
+    sm = TXT["tiny"] * 1.15
+    R, T = RISER, TREAD
+    v.rect(-1.6, -5 * IN, 2.6, 5 * IN, lw="heavy", fill="white", hatch="concrete",
+           hatch_kw=dict(scale=0.6))
+    zt = lambda x: R + 1.5 * IN - (x + NOS) * R / T
+    dz = C10_D / math.cos(PITCH)
+    xa = -1.5
+    g = _Poly([(xa, zt(xa)), (0.6, zt(0.6)), (0.6, zt(0.6) - dz), (xa, zt(xa) - dz)]).intersection(
+        _box(xa, 0.04, 0.33, 4))
+    v.geom(g, lw="thin", fill="white")
+    break_line(v, (xa, zt(xa) - dz + 0.05), (xa, zt(xa) + 0.05), zig=0.06)
+    _draw_steps(v, 0.0, 0.0, 2, -1)
+    v.polyline([(-0.55, 0.04), (0.45, 0.04)], lw="med")
+    v.rect(-0.55, 0.0, 1.0, 0.04, lw="fine", fill="black")
+    v.rect(0.33, 0.04, 0.04, 0.35, lw="fine", fill="g40")
+    for x in (-0.35, 0.2):
+        v.rect(x - 0.02, -0.33, 0.04, 0.42, lw="hair", fill="black")
+    note(v, (0.37, 0.25), (0.75, 0.75), "1/2\" BENT BASE PL.,\nWELD TO STRINGER", side="r", size=sm)
+    note(v, (0.2, -0.2), (0.75, -0.2), "(2) 1/2\" EXP. ANCHORS", side="r", size=sm)
+    note(v, (-1.0, zt(-1.0) - 0.5), (-1.55, 1.6), "C10x15.3 STRINGER (BEYOND)", side="r", size=sm)
+    note(v, (-1.2, -0.25), (-1.0, -0.75), "5\" SLAB ON GRADE, SEE S-101", side="r", size=sm)
+    return v
+
+
+def det_guard_elev(sh, ox, oy, s=3 / 8):
+    """elevation of the well guard + handrail along one flight (bottom landing at left)."""
+    v = sh.view(ox, oy, s)
+    sm = TXT["tiny"] * 1.15
+    hb, zb, sd = 1.5, 0.0, +1
+    h_t = hb + 11 * TREAD
+    v.line((-0.6, 0), (hb, 0), lw="thin")
+    v.line((h_t, 7.0), (h_t + 2.6, 7.0), lw="thin")
+    g = stringer_poly(hb, zb, sd)
+    v.geom(g, lw="fine", fill="white")
+    v.polyline(flight_profile(hb, zb, sd), lw="thin")
+    top = rail_line(hb, zb, sd, 42 * IN, ext_bot=0.15, ext_top=0)
+    bot = rail_line(hb, zb, sd, 3.5 * IN, ext_bot=0.15, ext_top=0)
+    hr = rail_line(hb, zb, sd, 36 * IN, ext_bot=TREAD, ext_top=1.0)
+    hh = hb + 0.15
+    while hh < h_t - 0.05:
+        za = nosing_z(hh, hb, zb, sd) + 3.5 * IN
+        v.line((hh, za), (hh, za + 38.5 * IN), lw="hair")
+        hh += 4.5 * IN
+    posts = [hb - 0.1, hb + 3.4, hb + 6.8, h_t + 0.05]
+    for hp in posts:
+        z0 = nosing_z(hp, hb, zb, sd) - 0.45
+        v.rect(hp - 0.06, z0, 0.12, 0.45 + 42 * IN, lw="fine", fill="g40")
+    v.polyline(top, lw="thin")
+    v.polyline(bot, lw="fine")
+    v.polyline(hr, lw="med")
+    v.line((hr[0][0], hr[0][1]), (hr[0][0], hr[0][1] - 0.35), lw="med")
+    v.line((hr[-1][0], hr[-1][1]), (hr[-1][0], hr[-1][1] - 0.35), lw="med")
+    # dims
+    v.dim((hr[0][0], hr[0][1] + 0.5), (hb, hr[0][1] + 0.5 + RISER * 0), 0, text="1 TREAD", size=sm) \
+        if False else None
+    v.dim((hb - TREAD, -0.55), (hb, -0.55), 0, text="11\" EXT.", size=sm)
+    v.dim((h_t, 7.0 + 42 * IN + 0.45), (h_t + 1.0, 7.0 + 42 * IN + 0.45), 0, text="12\" EXT.",
+          size=sm)
+    hm = hb + 5.0
+    zn = nosing_z(hm, hb, zb, sd)
+    v.dim((hm + 0.3, zn), (hm + 0.3, zn + 36 * IN), 0, text="36\"", size=sm, flip_text=True)
+    v.dim((hm + 1.15, zn + 0.55), (hm + 1.15, zn + 0.55 + 42 * IN), 0, text="42\"", size=sm,
+          flip_text=True) if False else None
+    v.dim((hb + 8.4, nosing_z(hb + 8.4, hb, zb, sd)), (hb + 8.4, nosing_z(hb + 8.4, hb, zb, sd) + 42 * IN),
+          0, text="42\"", size=sm, flip_text=True)
+    v.dim_chain([(posts[0], -1.25), (posts[1], -1.25), (posts[2], -1.25), (posts[3], -1.25)], 0,
+                size=sm)
+    note(v, (hb + 1.2, nosing_z(hb + 1.2, hb, zb, sd) + 36 * IN), (-0.6, 5.2),
+         "HANDRAIL (CONT. AROUND WELL)", side="r", size=sm)
+    note(v, (hb + 2.3, nosing_z(hb + 2.3, hb, zb, sd) + 42 * IN), (-0.6, 6.4),
+         "GUARD TOP RAIL 1 1/2\" SQ.", side="r", size=sm)
+    note(v, (posts[1], nosing_z(posts[1], hb, zb, sd) + 1.4), (6.2, 2.0),
+         "POSTS 4'-0\" O.C. MAX.\n(SEE 6/A-402)", side="r", size=sm)
+    v.text((-0.5, 0.15), "LANDING", size=sm, valign="bot")
+    return v
+
+
+def det_landing_rail_plan(sh, ox, oy, s=1 / 2):
+    """plan of ST-1 intermediate landing showing handrail continuity, extensions and guards."""
+    g = PL.stair_geom("ST-1")
+    box_ = (-1.2, -1.3, 13.0, 8.9)
+    v = sh.view(ox, oy, s, mx=box_[0], my=box_[1])
+    with clipped(v, *box_):
+        PL.draw_walls(v, "L2", "normal")
+        PL.draw_openings(v, "L2", swing=False)
+    x0, x1, fw = g["x0"], g["x1"], g["fw"]
+    f_lo = g["f_lo"]
+    up, up2 = g["up"], g["up2"]
+    hr = 2.25 * IN
+    ytop = 8.9
+    for i in range(0, 4):
+        yy = f_lo + i * TREAD
+        v.line((up[0], yy), (up[1], yy), lw="thin")
+        v.line((up2[0], yy), (up2[1], yy), lw="thin")
+    for xx in (up[0], up[1], up2[0], up2[1]):
+        v.line((xx, f_lo), (xx, ytop), lw="fine")
+    break_line(v, (-0.3, ytop - 0.15), (12.3, ytop - 0.15), zig=0.12)
+    # wall rails: east flight (arrives at landing = top) 12" horizontal ext.; west flight (leaves
+    # landing = bottom) one tread at slope; both returned to wall
+    v.polyline([(x1 - hr, ytop - 0.3), (x1 - hr, f_lo - 1.0), (x1, f_lo - 1.0)], lw="med")
+    v.polyline([(x0 + hr, ytop - 0.3), (x0 + hr, f_lo - TREAD), (x0, f_lo - TREAD)], lw="med")
+    # inside rails continuous around the well
+    xa, xb = up2[1] - hr, up[0] + hr
+    yw = f_lo - 0.45
+    v.polyline([(xa, ytop - 0.3), (xa, yw), (xb, yw), (xb, ytop - 0.3)], lw="med")
+    # guard posts at the well
+    for yy in (f_lo + 0.1, f_lo + 3.4):
+        for xx in (up2[1] + 0.06, up[0] - 0.06):
+            v.rect(xx - 0.06, yy - 0.06, 0.12, 0.12, lw="fine", fill="g50")
+    v.line((up2[1] + 0.06, f_lo + 0.1), (up2[1] + 0.06, ytop - 0.3), lw="fine")
+    v.line((up[0] - 0.06, f_lo + 0.1), (up[0] - 0.06, ytop - 0.3), lw="fine")
+    sm = TXT["small"]
+    v.dim((x1 - 1.0 * 0, f_lo), (x1, f_lo - 1.0), 0, text=" ") if False else None
+    v.dim((x1 - 0.55, f_lo), (x1 - 0.55, f_lo - 1.0), 0, text="12\"", size=sm)
+    v.dim((x0 + 0.55, f_lo), (x0 + 0.55, f_lo - TREAD), 0, text="11\"", size=sm, flip_text=True)
+    v.dim((x0, 3.4), (x0 + hr, 3.4), 0, text="2 1/4\"", size=sm) if False else None
+    v.dim((x0, f_lo), (x0, g["y0"]), 0.0, size=sm) if False else None
+    v.dim((x0 - 0.0, g["y0"]), (x0, f_lo), 1.0, size=sm)
+    v.dim((up2[1], yw - 0.9), (up[0], yw - 0.9), 0, size=sm, text="12\" WELL")
+    btext(v, ((x0 + x1) / 2, 1.6), "INTERMEDIATE LANDING\nEL. 107'-0\"  RF-1", size=TXT["small"])
+    btext(v, ((up2[0] + up2[1]) / 2, f_lo + 2.0), "UP TO L2", size=TXT["small"], font=FONT_B)
+    btext(v, ((up[0] + up[1]) / 2, f_lo + 2.0), "DN TO L1", size=TXT["small"], font=FONT_B)
+    ns = TXT["tiny"] * 1.15
+    note(v, (xa, yw), (3.4, 4.6) if False else (2.2, 4.55), "INSIDE HANDRAIL\nCONTINUOUS", side="l", size=ns)
+    note(v, (x1 - hr, f_lo - 0.6), (12.6, 3.0), "WALL RAIL: 12\" HORIZ.\nEXT. AT TOP, RETURN\nTO WALL",
+         side="r", size=ns)
+    note(v, (x0 + hr, f_lo - 0.5), (-0.6, 3.3), "WALL RAIL: 1 TREAD\nEXT. AT BOTTOM,\nRETURN TO WALL",
+         side="l", size=ns)
+    note(v, (up[0] - 0.06, f_lo + 3.4), (8.3, 7.6), "42\" GUARD POSTS", side="r", size=ns)
+    window_tag(v, (6.0, -0.95), "W-C")
+    return v
+
+
+STAIR_SECTION_NOTES = [
+    "STAIRS ST-1 AND ST-2 ARE IDENTICAL (MIRRORED): 24 RISERS @ 7\" = 14'-0\" (L1 100'-0\" TO L2 114'-0\"), 2 FLIGHTS OF 12 RISERS / 11 TREADS @ 11\", "
+    "INTERMEDIATE LANDING AT 107'-0\" (5'-6\" DEEP), FLIGHTS 5'-2\" WIDE, 12\" WELL.",
+    "STEEL STAIRS (SECTION 05 51 00): DESIGN-BUILD BY FABRICATOR FOR 100 PSF LIVE LOAD / 300 LB CONCENTRATED; SUBMIT SEALED CALCULATIONS. "
+    "SHOP PRIME, FIELD PAINT. STRINGERS C10x15.3, LANDING FRAMING C10x15.3, 14 GA. PANS, 1 1/2\" CONC. FILL (TREADS), 2\" (LANDINGS).",
+    "HANDRAILS: BOTH SIDES, 34\"-38\" ABOVE NOSINGS (36\" TYP.); INSIDE RAIL CONTINUOUS AT WELL; EXTEND 12\" HORIZ. AT TOP RISER, "
+    "ONE TREAD AT SLOPE BEYOND BOTTOM RISER; RETURN ENDS TO WALL / POST. 200 LB CONCENTRATED LOAD (IBC 1607.9).",
+    "GUARDS: 42\" MIN. AT WELL (FROM NOSING LINE) AND L2 LANDING EDGE; INFILL TO REJECT 4\" SPHERE (4 3/8\" AT TREAD TRIANGLE).",
+    "FINISHES: RST-1 TREADS / RISERS, RF-1 LANDINGS, RB-1 BASE, PNT-1 WALLS AND EXPOSED STEEL; STAIR SHAFT CEILING EXPOSED (PAINT).",
+    "W-C STOREFRONT STRIP (TEMPERED) RUNS FROM 103'-4\" TO 122'-0\" PAST THE LANDING; LANDING REAR C10 KEPT 4\" MIN. CLEAR OF STOREFRONT.",
+]
+HOIST_NOTES = [
+    "ELEVATOR (SECTION 14 21 00): 3,500 LB MRL TRACTION, 2 STOPS, 125 FPM, FRONT OPENING 3'-6\" x 7'-0\" 2-SPEED SIDE-SLIDE; CONTROLLER IN ROOM 112.",
+    "HOISTWAY: 8\" CMU (P2, 1-HR), CLEAR 8'-4 3/8\" x 8'-4 3/8\"; PIT 5'-0\" DEEP (FLOOR EL. 95'-0\"), 12\" CONC. WALLS, 14\" MAT; SEE S-101 / S-301.",
+    "PIT: CRYSTALLINE WATERPROOFING ADMIXTURE, PVC WATERSTOP AT WALL/MAT JOINT; SUMP 24\"x24\"x24\" W/ GRATE (OIL-FREE TRACTION - NO OIL INTERCEPTOR).",
+    "PIT LADDER (GC): GALV. STEEL, 16\" CLR. RUNGS @ 12\" O.C., 7\" TOE CLR., EXTEND 48\" ABOVE L1 SILL; PIT LIGHT, GFCI AND STOP SWITCH BY DIV. 26 / ELEV.",
+    "HOIST BEAM / RAIL BRACKET SUPPORTS AND OVERHEAD CLEARANCE PER ELEVATOR MFR. REACTIONS; GC TO VERIFY BEFORE STEEL SHOP DRAWINGS (SEE S-103).",
+    "NO PIPING, DUCTS OR EQUIPMENT NOT SERVING THE ELEVATOR WITHIN THE HOISTWAY (ASME A17.1).",
+]
+
+
+def a402(sh):
+    X0, X1, Y0, Y1 = sh.x0, sh.x1, sh.y0, sh.y1
+    oy = Y1 - 0.25 - 37.6 * Q
+    stair_section(sh, X0 + 0.55, oy, "ST-1")
+    sh.view_title(X0 + 0.5, oy - 0.45, 1, "STAIR 1 SECTION", Q, width=8.6,
+                  note="LOOKING WEST - SEE 3/A-401")
+    stair_section(sh, X0 + 10.95, oy, "ST-2")
+    sh.view_title(X0 + 10.9, oy - 0.45, 2, "STAIR 2 SECTION", Q, width=8.6,
+                  note="LOOKING EAST - SEE 4/A-401")
+    # elevator pit (right column)
+    pox, poy = X0 + 22.35, Y1 - 7.2
+    pit_section(sh, pox, poy)
+    sh.view_title(X0 + 21.6, poy - 0.55, 3, "ELEVATOR PIT SECTION", 3 / 8, width=6.0,
+                  note="SEE 6/A-401")
+    cw = X1 - X0 - 21.7
+    h = notes_block(sh, X0 + 21.6, poy - 1.3, "ELEVATOR HOISTWAY NOTES", HOIST_NOTES, cw)
+    notes_block(sh, X0 + 21.6, poy - 1.3 - h - 0.2, "STAIR NOTES", STAIR_SECTION_NOTES, cw)
+    # middle band: guard / handrail elevation + landing railing plan
+    my = Y0 + 8.3
+    det_guard_elev(sh, X0 + 1.1, my + 0.15)
+    sh.view_title(X0 + 0.5, my - 1.0, 9, "WELL GUARD + HANDRAIL ELEVATION (TYP.)", 3 / 8,
+                  width=6.9)
+    det_landing_rail_plan(sh, X0 + 11.6, my - 0.2, 3 / 8)
+    sh.view_title(X0 + 9.6, my - 1.0, 10, "RAILING PLAN AT INTERMEDIATE LANDING", 3 / 8, width=9.0,
+                  note="ST-1 SHOWN, ST-2 MIRROR")
+    # bottom band: 1 1/2" details
+    cy = Y0 + 0.95
+    det_tread(sh, X0 + 1.05, cy + 2.0)
+    sh.view_title(X0 + 0.5, cy, 4, "TREAD / NOSING", 1.5, width=5.4)
+    det_rail_bracket(sh, X0 + 7.6, cy + 2.6)
+    sh.view_title(X0 + 6.45, cy, 5, "HANDRAIL BRACKET AT CMU", 3.0, width=4.3)
+    det_guard(sh, X0 + 12.75, cy + 2.15)
+    sh.view_title(X0 + 11.25, cy, 6, "GUARD POST AT LANDING / WELL", 1.5, width=5.0)
+    det_stringer_landing(sh, X0 + 19.2, cy + 4.2)
+    sh.view_title(X0 + 16.8, cy, 7, "STRINGER TO LANDING", 1.5, width=5.4)
+    det_stringer_base(sh, X0 + 24.6, cy + 1.75)
+    sh.view_title(X0 + 22.9, cy, 8, "STRINGER BASE AT LEVEL 1", 1.5, width=5.0)
+
+
+# =========================================================================================
 SHEETS = [
     ("A-401", "ENLARGED PLANS", a401),
+    ("A-402", "STAIR SECTIONS & DETAILS", a402),
     ("A-602", "INTERIOR ELEVATIONS -\nTOILET ROOMS", a602),
 ]
