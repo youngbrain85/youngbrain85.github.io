@@ -1,0 +1,4 @@
+output/png/
+output/preview_*.pdf
+__pycache__/
+*.pyc
