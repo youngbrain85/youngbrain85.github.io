@@ -2067,10 +2067,769 @@ def s301(sh):
     d301_corner(sh, cells[11])
 
 
+
+# ----------------------------------------------------------------------------------------
+# S-302 MASONRY & STEEL DETAILS
+# ----------------------------------------------------------------------------------------
+LINTEL_TYPES = OrderedDict([
+    ("CL-1", "8\" CMU BOND BEAM LINTEL (1 COURSE), (2) #4 BOT., GROUT SOLID"),
+    ("CL-2", "16\" CMU BOND BEAM LINTEL (2 COURSES), (2) #5 BOT., GROUT SOLID"),
+    ("CL-3", "24\" CMU BOND BEAM LINTEL (3 COURSES), (2) #5 BOT. + (2) #4 TOP, GROUT SOLID"),
+    ("BL-1", "L4x3 1/2x5/16 LLV LOOSE LINTEL, HOT-DIP GALV. (BRICK VENEER)"),
+    ("BL-2", "L5x3 1/2x5/16 LLV LOOSE LINTEL, HOT-DIP GALV."),
+    ("BL-3", "L6x4x3/8 LLV, HOT-DIP GALV., BOLTED TO CL-3 W/ 3/4\" ANCHORS @ 24\" O.C."),
+])
+
+
+def _cl(w):
+    return "CL-1" if w <= 4.0 + 1e-6 else ("CL-2" if w <= 8.0 + 1e-6 else "CL-3")
+
+
+def _bl(w):
+    return "BL-1" if w <= 5.0 + 1e-6 else ("BL-2" if w <= 8.0 + 1e-6 else "BL-3")
+
+
+def _brg(mark):
+    return {"CL-1": 8, "CL-2": 8, "CL-3": 16, "BL-1": 8, "BL-2": 8, "BL-3": 12}[mark]
+
+
+def lintel_rows():
+    """[(mark, width, ext, types_desc, qty, heads, cl, cl_len, bl, bl_len, remarks)]"""
+    groups = OrderedDict()
+    for o in sorted(M.OPENINGS, key=lambda o: (o.w, o.wall in M.EXT_SEGS)):
+        if o.kind == "door" and o.frame == "SF":
+            continue                       # door 100B is inside SF-1
+        if o.wall in M.EXT_SEGS:
+            ext = True
+        else:
+            if M.WALL_TYPES[M.WALL_BY_ID[o.wall].type]["mat"] != "cmu":
+                continue                   # openings in stud partitions
+            ext = False
+        groups.setdefault((round(o.w, 3), ext), []).append(o)
+    rows = []
+    for (w, ext), ops in groups.items():
+        cnt = OrderedDict()
+        heads = set()
+        for o in ops:
+            if o.kind == "door":
+                k = f"{o.frame} DOOR"
+            elif o.kind == "elevator":
+                k = "ELEV. ENTRANCE"
+            else:
+                k = o.type
+            cnt[k] = cnt.get(k, 0) + 1
+            heads.add(o.head)
+        desc = ", ".join(f"{k} ({n})" for k, n in cnt.items())
+        hd = " / ".join(fmt_ftin(h, 8) for h in sorted(heads))
+        if w > 20:
+            cl, cll, bl, bll = "HSS8x8x1/2 HEAD BEAM", "SEE S-103", "L7x4x3/8 LLH WELDED", "CONT."
+            rem = "SEE 13/S-302; SUPPORTED BY LINK FRAMING"
+        else:
+            cl = _cl(w)
+            cll = fmt_ftin(w + 2 * _brg(cl) / 12.0)
+            bl, bll = ("-", "-")
+            if ext:
+                bl = _bl(w)
+                bll = fmt_ftin(w + 2 * _brg(bl) / 12.0)
+            rem = ""
+            if "LV-1" in cnt:
+                rem = "LV-1: CL-1 COMBINED W/ L2 BOND BEAM ABOVE"
+            if "W-C" in cnt:
+                rem = (rem + "; " if rem else "") + "W-C HEAD 122'-0\""
+            if not ext and any(M.WALL_BY_ID[o.wall].type == "P2" for o in ops):
+                rem = (rem + "; " if rem else "") + "RATED WALLS: GROUT SOLID"
+        rows.append(dict(w=w, ext=ext, desc=desc, qty=len(ops), heads=hd, cl=cl, cll=cll, bl=bl,
+                         bll=bll, rem=rem))
+    return rows
+
+
+def d302_cmu_elev(sh, cell):
+    sc = 3 / 16
+    x0, x1 = 58.0, 92.0
+    v = _dview(sh, cell, sc, (x0 - 3.0, 97.0, x1 + 34.0, 134.5), dx=0.0)
+    y0, ytop = EL_TOW, M.LEVELS["PARAPET"]
+    ops = [o for o in M.OPENINGS if o.wall == "S" and 60 < o.c < 90]
+    # CMU field
+    v.rect(x0, y0, x1 - x0, ytop - y0, lw="med", fill="white")
+    k = 1
+    while y0 + k * 8 * IN < ytop - 1e-6:
+        y = y0 + k * 8 * IN
+        v.line((x0, y), (x1, y), lw=0.15, color="g40")
+        k += 1
+    # joint reinforcing @ 16"
+    k = 1
+    while y0 + k * 16 * IN < ytop - 1e-6:
+        y = y0 + k * 16 * IN + 0.02
+        v.line((x0, y), (x1, y), lw=0.3, dash=[1.5, 1.0], color="g50")
+        k += 1
+    # bond beams
+    bbs = [(112 + 8 * IN, EL_L2, "L2 BOND BEAM"), (127 + 4 * IN, EL_ROOF, "ROOF BOND BEAM"),
+           (130 + 8 * IN, ytop, "TOP BOND BEAM")]
+    for a, b, _ in bbs:
+        v.rect(x0, a, x1 - x0, b - a, lw="thin", fill="g15")
+        n = 2 if b - a > 0.7 else 1
+        for j in range(n):
+            yy = a + (j + 0.5) * (b - a) / n
+            v.line((x0, yy - 0.12), (x1, yy - 0.12), lw=0.9)
+            v.line((x0, yy + 0.12), (x1, yy + 0.12), lw=0.9)
+    # openings + lintels
+    for o in ops:
+        v.rect(o.lo, o.sill, o.w, o.head - o.sill, lw="thin", fill="white")
+        v.line((o.lo, o.sill), (o.hi, o.head), lw="hair")
+        v.line((o.lo, o.head), (o.hi, o.sill), lw="hair")
+        b8 = 8 * IN
+        v.rect(o.lo - b8, o.head, o.w + 2 * b8, 16 * IN, lw="thin", fill="g30")
+        v.line((o.lo - b8, o.head + 4 * IN), (o.hi + b8, o.head + 4 * IN), lw=0.9)
+        # jamb bars (2 #5 each side, full height)
+        for xj in (o.lo - 4 * IN, o.hi + 4 * IN):
+            v.line((xj - 0.08, y0), (xj - 0.08, ytop), lw=0.9, dash=[4, 2])
+            v.line((xj + 0.08, y0), (xj + 0.08, ytop), lw=0.9, dash=[4, 2])
+        # field bars under sill / over head @ 48"
+        xs = [o.lo + 1.33 + 4.0 * k for k in range(2)]
+        for xb in xs:
+            v.line((xb, y0), (xb, o.sill), lw=0.8, dash=[4, 2])
+            nxt = 112 + 8 * IN if o.head < EL_L2 else 127 + 4 * IN
+            v.line((xb, o.head + 16 * IN), (xb, nxt), lw=0.8, dash=[4, 2])
+    # embedded columns
+    for xc in (60.0, 90.0):
+        v.rect(xc - 0.25, y0, 0.5, EL_COL_TOP - y0, lw="fine", dash="hidden")
+        for xx in (xc - 0.6, xc + 0.6):
+            v.line((xx, y0), (xx, ytop), lw=0.9, dash=[4, 2])
+    # floor / roof lines (beyond)
+    for el in (EL_L1, EL_L2, EL_ROOF):
+        v.line((x0 - 1.0, el), (x1 + 1.0, el), lw="hair", dash="center")
+    _brk_v(v, x0, y0 - 0.4, ytop + 0.4)
+    _brk_v(v, x1, y0 - 0.4, ytop + 0.4)
+    _dgrid(v, 60.0, y0 - 1.2, ytop + 1.0, "3")
+    _dgrid(v, 90.0, y0 - 1.2, ytop + 1.0, "4")
+    for el, lab in ((ytop, "T.O. PARAPET"), (EL_ROOF, "ROOF"), (EL_L2, "LEVEL 2"),
+                    (EL_L1, "LEVEL 1"), (y0, "T.O. FDN. WALL")):
+        _lev(v, x1 + 2.6, el, lab, "r", x_from=x1 + 0.4)
+    o = ops[0]
+    _dim(v, (o.hi + 4 * IN, y0 - 1.3), (ops[1].lo - 4 * IN, y0 - 1.3), 0)
+    _dim(v, (o.lo - 4 * IN, y0 - 1.3), (o.hi + 4 * IN, y0 - 1.3), 0)
+    _dim(v, (o.lo + 1.33, 104.0 - 3.0), (o.lo + 5.33, 104.0 - 3.0), 0, text="4'-0\" MAX.")
+    _dim(v, (o.lo - 8 * IN, o.head + 16 * IN + 0.2), (o.lo, o.head + 16 * IN + 0.2), 0.3)
+    # notes in the open area right of the elevation
+    nx = x1 + 11.0
+    notes = [
+        "##EXTERIOR CMU (EW-1 BACKUP) - TYPICAL BAY SHOWN (SOUTH WALL, GRIDS 3-4)",
+        "VERTICAL: #5 @ 48\" O.C. MAX. (STAIR / ELEVATOR SHEAR WALLS #5 @ 32\" O.C.), CENTERED IN CELLS, CONTINUOUS FROM FOUNDATION DOWELS TO TOP BOND BEAM; LAP 30\" (48 BAR DIA.).",
+        "AT EACH SIDE OF OPENINGS: (2) #5 IN FIRST CELL, FULL HEIGHT. AT CORNERS, WALL ENDS AND EACH SIDE OF EMBEDDED COLUMNS: (1) #5 EACH. EACH SIDE OF CONTROL JOINTS: (1) #5.",
+        "BOND BEAMS (GROUT SOLID): L2 = 2 COURSES 112'-8\" TO 114'-0\" W/ (2) #5 EACH COURSE; ROOF = 127'-4\" TO 128'-0\" W/ (2) #5; TOP OF PARAPET = 130'-8\" TO 131'-4\" W/ (2) #5. BOND BEAM BARS CONTINUOUS THROUGH CONTROL JOINTS (CHORD), LAP 30\" AT SPLICES, BENT BARS AT CORNERS.",
+        "JOINT REINFORCEMENT: 9 GA. LADDER TYPE, HOT-DIP GALV. (ASTM A951 / A153 B-2), @ 16\" O.C. VERTICALLY (EVERY OTHER COURSE), PREFABRICATED CORNERS & TEES, LAP 6\". INTERRUPT AT CONTROL JOINTS.",
+        "LINTELS PER SCHEDULE 2/S-302 (SHOWN: CL-2, 8\" BEARING). EMBEDDED HSS COLUMNS PER 5/S-302.",
+        "GROUT: ASTM C476 FINE / COARSE, f'g = 2,000 PSI MIN., SLUMP 8\"-11\". MAX. POUR 12'-8\" WITH CLEANOUTS; LIFTS 5'-4\" MAX. CONSOLIDATE AND RECONSOLIDATE.",
+        "##INTERIOR CMU (P1 / P2)",
+        "#5 @ 48\" O.C., (2) #5 AT JAMBS, (1) #5 AT ENDS / CORNERS; 8\" TOP BOND BEAM W/ (2) #4; 9 GA. JOINT REINF. @ 16\" O.C. DOWEL TO TS-1 PER 3/S-301. TOP OF WALL PER 6 & 7/S-302.",
+    ]
+    px, py = v.to_paper((nx, 133.5))
+    notes_block(sh, px, py, "CMU REINFORCING", notes, cell["x"] + cell["w"] - px - 0.25,
+                size=TXT["small"], title_size=TXT["small"] * 1.2)
+    _ldr(v, (63.0, 113.3), (x0 - 1.5, 116.0), "L2 BOND BEAM", "l")
+    _ldr(v, (63.0, 127.6), (x0 - 1.5, 129.4), "ROOF BOND BEAM", "l")
+    _ldr(v, (66.0, 131.0), (x0 - 1.5, 133.0), "TOP BOND BEAM", "l")
+    _ldr(v, (64.0, 109.9), (x0 - 1.5, 111.0), "CL-2 LINTEL", "l")
+    _ldr(v, (o.lo - 4 * IN - 0.08, 106.0), (x0 - 1.5, 106.6), "(2) #5 JAMB", "l")
+    _ldr(v, (60.6, 101.5), (x0 - 1.5, 101.5), "#5 EA. SIDE\nOF COLUMN", "l")
+    _ldr(v, (61.5, 120.0 + 16 * IN * 0.0), (x0 - 1.5, 121.0), "JT. REINF.\n@ 16\" O.C.", "l")
+    _dtitle(sh, cell, 1, "TYPICAL EXTERIOR CMU REINFORCING ELEVATION", sc)
+
+
+def d302_lintels(sh, cell):
+    rows = lintel_rows()
+    x = cell["x"] + 0.25
+    y = cell["y"] + cell["h"] - 0.25
+    cols = [("MO\nWIDTH", 0.7), ("WALL", 0.5), ("OPENINGS (TYPE / QTY)", 3.15), ("QTY", 0.42),
+            ("HEAD EL.", 1.35), ("CMU\nLINTEL", 0.62), ("CMU LINT.\nLENGTH", 0.72),
+            ("BRICK\nLINTEL", 0.62), ("ANGLE\nLENGTH", 0.66), ("REMARKS", 3.2)]
+    trows = []
+    tot = 0
+    for r in rows:
+        tot += r["qty"]
+        trows.append([fmt_ftin(r["w"]), "EXT." if r["ext"] else "INT.", r["desc"], str(r["qty"]),
+                      r["heads"], r["cl"] if r["w"] < 20 else "HSS8x8", r["cll"],
+                      r["bl"] if r["w"] < 20 else "L7x4", r["bll"], r["rem"]])
+    trows.append([fmt_ftin(11 + 4 * IN), "EXIST.", "NEW OPENING IN EXIST. EAST WALL (1)", "1",
+                  "109'-4\"", "W10x33", "13'-0\"", "+PL 3/8", "-", "W10x33 + PL 3/8x11 1/2 BOTTOM, SEE 12/S-302"])
+    h = table(sh, x, y, cols, trows, row_h=0.2, size=TXT["small"], wrap=True, max_lines=3,
+              title="LINTEL SCHEDULE (ALL MASONRY OPENINGS; GENERATED FROM DOOR / WINDOW DATA)",
+              align=["c", "c", "l", "c", "c", "c", "c", "c", "c", "l"])
+    yy = y - h - 0.25
+    sh.text((x, yy), "LINTEL TYPES", size=TXT["small"] * 1.2, font=FONT_B, valign="top",
+            underline=True)
+    yy -= 0.22
+    for k, d in LINTEL_TYPES.items():
+        sh.text((x, yy), k, size=TXT["small"], font=FONT_B, valign="top")
+        sh.text((x + 0.5, yy), d, size=TXT["small"], valign="top")
+        yy -= 0.16
+    nx = x + 6.3
+    yy2 = y - h - 0.25
+    notes = [
+        "BEARING EACH END: CL-1 / CL-2 / BL-1 / BL-2 = 8\"; CL-3 = 16\"; BL-3 = 12\". LENGTHS LISTED = MO + 2 x BEARING.",
+        "EXTERIOR (EW-1) OPENINGS RECEIVE A CMU LINTEL IN THE BACKUP AND A GALVANIZED LOOSE ANGLE FOR THE BRICK VENEER; INTERIOR CMU OPENINGS RECEIVE A CMU LINTEL ONLY. OPENINGS IN STUD PARTITIONS (107 / 207) NEED NO LINTEL.",
+        "WHERE A BOND BEAM OCCURS WITHIN 8\" ABOVE A HEAD, COMBINE LINTEL AND BOND BEAM (GROUT SOLID BETWEEN).",
+        "PROVIDE SHORING UNDER CMU LINTELS UNTIL GROUT REACHES 2,000 PSI (7 DAYS MIN.).",
+        "FLASHING, END DAMS, WEEPS AND SOLDIER COURSE ABOVE W-A / W-B / SF-2 HEADS PER A-501.",
+    ]
+    notes_block(sh, nx, yy2, "LINTEL NOTES", notes, cell["x"] + cell["w"] - nx - 0.2,
+                size=TXT["small"], title_size=TXT["small"] * 1.2)
+    sh.text((cell["x"] + 0.25, cell["y"] + 0.3), "2", size=TXT["sub"], font=FONT_B, valign="mid")
+    sh.view_title(cell["x"] + 0.18, cell["y"] + 0.40, 2, "LINTEL SCHEDULE", "SCALE: NONE",
+                  width=4.0)
+
+
+def d302_lintel_sec(sh, cell):
+    sc = 1.0
+    title_h = 0.62
+    hh = (cell["h"] - title_h) / 2
+    # A: exterior head at W-A (L1)
+    c = dict(x=cell["x"], y=cell["y"] + title_h + hh, w=cell["w"], h=hh)
+    hd = 109 + 4 * IN
+    v = sh.view(c["x"] + 2.75, c["y"] + 0.35, sc, 0.0, hd - 0.9)
+    top = hd + 2.2
+    _cmu_sec(v, -CMUh, CMUh, hd, top, grout=[(hd, hd + 16 * IN)])
+    _bars(v, [(-0.1, hd + 0.3), (0.1, hd + 0.3)])
+    _insul_sec(v, CMUh, CMUh + 2 * IN, hd, top)
+    _brick_sec(v, 7.8125 * IN, 11.4375 * IN, hd + 0.4 * IN, top, course0=hd + 0.4 * IN)
+    v.rect(7.8125 * IN, hd + 0.4 * IN, 3.625 * IN, 8 * IN, lw="thin", fill="g20")
+    _ang(v, (7.8125 * IN - 0.1 * IN, hd + 0.05 * IN), 3.5, 5.0, 5 / 16, hx=1, vy=1)
+    v.polyline([(CMUh + 2 * IN + 0.01, hd + 0.9), (CMUh + 2 * IN + 0.01, hd + 0.03),
+                (11.4375 * IN + 0.05, hd + 0.03)], lw="med")
+    v.rect(-CMUh, hd - 0.9, 11.4375 * IN + CMUh, 0.9, lw="hair", dash="hidden")
+    _brk_h(v, top, -0.5, 1.1)
+    _ldr(v, (0.0, hd + 1.0), (-0.7, hd + 2.0), "CL-2: 16\" CMU LINTEL,\n(2) #5 BOT., GROUT\nSOLID; 8\" BRG.", "l")
+    _ldr(v, (-0.1, hd + 0.3), (-0.7, hd + 0.9), "(2) #5", "l")
+    _ldr(v, (-0.2, hd - 0.4), (-0.7, hd - 0.35), "W-A WINDOW\nBELOW (A-711)", "l")
+    _ldr(v, (0.8, hd + 0.3), (1.35, hd + 1.9), "FB-2 SOLDIER COURSE\n(A-501)", "r")
+    _ldr(v, (0.70, hd + 0.03), (1.35, hd + 1.15), "BL-2 L5x3 1/2x5/16 LLV\nGALV. LOOSE LINTEL", "r")
+    _ldr(v, (0.45, hd + 0.04), (1.35, hd + 0.4), "FLASHING W/ END\nDAMS & WEEPS", "r")
+    sh.text((c["x"] + 0.25, c["y"] + hh - 0.12), "A. EXTERIOR HEAD (EW-1)", size=TXT["small"],
+            font=FONT_B, valign="top", underline=True)
+    # B: interior door head
+    c = dict(x=cell["x"], y=cell["y"] + title_h, w=cell["w"], h=hh)
+    hd = 107 + 4 * IN
+    v = sh.view(c["x"] + 2.75, c["y"] + 0.35, sc, 0.0, hd - 0.9)
+    top = hd + 2.2
+    _cmu_sec(v, -CMUh, CMUh, hd, top, grout=[(hd, hd + 16 * IN)], course0=100.0)
+    _bars(v, [(-0.1, hd + 0.3), (0.1, hd + 0.3)])
+    v.rect(-CMUh - 1 * IN, hd - 0.6, 2 * CMUh + 2 * IN, 0.6, lw="hair", dash="hidden")
+    v.polyline([(-CMUh - 0.5 * IN, hd - 0.6), (-CMUh - 0.5 * IN, hd), (CMUh + 0.5 * IN, hd),
+                (CMUh + 0.5 * IN, hd - 0.6)], lw="thin")
+    _brk_h(v, top, -0.5, 0.5)
+    _ldr(v, (0.0, hd + 1.0), (-0.7, hd + 1.8), "CL-1 / CL-2 PER\nSCHEDULE, GROUT\nSOLID", "l")
+    _ldr(v, (0.1, hd + 0.3), (0.85, hd + 0.75), "(2) #4 (CL-1) OR\n(2) #5 (CL-2)", "r")
+    _ldr(v, (CMUh + 0.4 * IN, hd - 0.3), (0.85, hd - 0.3), "HM FRAME (A-701),\nGROUT FILL AT\nEXTERIOR / RATED", "r")
+    sh.text((c["x"] + 0.25, c["y"] + hh - 0.12), "B. INTERIOR CMU HEAD", size=TXT["small"],
+            font=FONT_B, valign="top", underline=True)
+    _dtitle(sh, cell, 3, "TYPICAL LINTEL SECTIONS", sc)
+
+
+def d302_shelf(sh, cell):
+    sc = 1.0
+    v = _dview(sh, cell, sc, (-3.0, 111.1, 3.0, 115.9))
+    y0, y1 = 111.4, 115.6
+    bb0 = 112 + 8 * IN
+    _cmu_sec(v, -CMUh, CMUh, y0, y1, grout=[(bb0, EL_L2)])
+    _bars(v, [(-0.1, bb0 + 0.3), (0.1, bb0 + 0.3), (-0.1, bb0 + 0.97), (0.1, bb0 + 0.97)])
+    ang_top = 113 + 4 * IN
+    t = 7 / 16
+    # insulation interrupted at the angle
+    _insul_sec(v, CMUh, CMUh + 2 * IN, y0, ang_top - 4 * IN - 0.03)
+    _insul_sec(v, CMUh, CMUh + 2 * IN, ang_top + 0.02, y1)
+    # angle: vertical leg down against CMU (4"), horizontal leg 7" out
+    _ang(v, (CMUh, ang_top), 7.0, 4.0, t, hx=1, vy=-1)
+    # bolt
+    v.line((-0.15, ang_top - 2 * IN), (CMUh + 0.6 * IN, ang_top - 2 * IN), lw=1.6)
+    # CS-2 band + brick
+    bx0, bx1 = 7.8125 * IN, 11.4375 * IN
+    v.rect(bx0, ang_top, bx1 - bx0, 8 * IN, lw="thin", fill="g20")
+    _brick_sec(v, bx0, bx1, EL_L2, y1, course0=EL_L2)
+    _brick_sec(v, bx0, bx1, y0, ang_top - t * IN - 0.375 * IN, course0=ang_top - t * IN - 0.375 * IN)
+    v.rect(bx0, ang_top - t * IN - 0.375 * IN, bx1 - bx0, 0.375 * IN, lw="fine", fill="white")
+    v.polyline([(CMUh + 2 * IN + 0.01, ang_top + 0.7), (CMUh + 2 * IN + 0.01, ang_top + 0.01),
+                (bx1 + 0.05, ang_top + 0.01), (bx1 + 0.08, ang_top - 0.04)], lw="med")
+    # slab edge and spandrel (inboard 7 1/2")
+    xs = -OFF
+    _wsec(v, xs, EL_TOS2, 15.9, 5.53, 0.44, 0.275)
+    ex = -CMUh - 0.5 * IN
+    # deck + slab
+    dk = EL_TOS2
+    v.polygon([(-3.0 + 0.2, dk), (ex, dk), (ex, EL_L2), (-3.0 + 0.2, EL_L2)], lw="thin",
+              fill="white", hatch="concrete", hatch_kw=dict(scale=0.6))
+    v.line((-2.8, dk), (ex, dk), lw="thin")
+    _pl(v, ex - 3 / 8 * IN, dk, ex, EL_L2 - 0.2 * IN)
+    _pl(v, xs - 2.76 * IN, dk, ex, dk + 3 / 8 * IN)
+    v.rect(ex, dk, 0.5 * IN, EL_L2 - dk, lw="fine", fill="g20")
+    _wwf(v, -2.7, ex - 0.05, EL_L2 - 1 * IN)
+    for xx in (xs - 0.05,):
+        v.line((xx, dk), (xx, dk + 5.5 * IN), lw=1.6)
+    _barline(v, [(-2.6, EL_L2 - 2.0 * IN), (-0.05, EL_L2 - 2.0 * IN), (-0.05, bb0 + 0.97)], w=1.0)
+    _brk_v(v, -2.8, dk - 1.5, EL_L2 + 0.1)
+    _brk_h(v, y1, -0.5, 1.1)
+    _brk_h(v, y0, -0.5, 1.1)
+    xl = -1.4
+    _ldr(v, (-1.6, EL_L2 - 0.15), (xl - 0.2, 115.5), "D1 SLAB (6 1/4\" TOTAL), T.O. 114'-0\"", "l")
+    _ldr(v, (-1.0, EL_L2 - 2.0 * IN), (xl, 115.0), "#4 x 4'-0\" @ 24\" O.C. HOOKED\nINTO BOND BEAM (DIAPHRAGM TIE)", "l")
+    _ldr(v, (ex - 0.1 * IN, EL_L2 - 0.3), (xl, 114.35), "3/8\" BENT PL POUR STOP,\n1/2\" COMPRESSIBLE JOINT", "l")
+    _ldr(v, (xs - 0.1, EL_TOS2 - 0.7), (xl, 112.9), "W16x31 SPANDREL, 7 1/2\"\nINBOARD OF GRID (T.O.S.\n113'-5 3/4\")", "l")
+    _ldr(v, (-0.15, bb0 + 0.3), (xl, 111.75), "L2 BOND BEAM 112'-8\" TO\n114'-0\", (2) #5 EA. COURSE", "l")
+    xr = 1.25
+    _ldr(v, (bx0 + 1 * IN, ang_top + 4 * IN), (xr, 115.3), "CS-2 CAST STONE BAND\n113'-4\" TO 114'-0\" (A-501)", "r")
+    _ldr(v, (CMUh + 3 * IN, ang_top - 0.02), (xr, 114.1), "L7x4x7/16 LLH SHELF ANGLE,\nCONT. (GALV.), 1/4\" GAP\nAT 20'-0\" MAX.", "r")
+    _ldr(v, (0.2, ang_top - 2 * IN), (xr, 113.25), "3/4\" DIA. A307 EMBEDDED\nBOLTS @ 24\" O.C. IN\nGROUTED BOND BEAM", "r")
+    _ldr(v, (bx1 - 0.5 * IN, ang_top - 0.07), (xr, 112.45), "3/8\" SOFT JOINT + SEALANT;\nFLASHING & WEEPS (A-501)", "r")
+    _ldr(v, (CMUh + 1 * IN, 111.8), (xr, 111.65), "2\" POLYISO (CUT AT ANGLE)", "r")
+    _lev(v, 2.3, EL_L2, "", "r")
+    _dim(v, (CMUh, ang_top + 1.0), (CMUh + 7 * IN, ang_top + 1.0), 0, text="7\"")
+    _dim(v, (-0.0, y1 - 0.15), (xs, y1 - 0.15), 0, text="7 1/2\"")
+    v.line((0.0, y0), (0.0, y1), lw="hair", dash="center")
+    _dtitle(sh, cell, 4, "SHELF ANGLE / SLAB EDGE AT LEVEL 2", sc)
+
+
+def d302_column(sh, cell):
+    sc = 1.0
+    v = _dview(sh, cell, sc, (-3.0, -3.6, 3.0, 2.2))
+    # local plan: x along wall (E-W), y + toward exterior (north)
+    L = 2.6
+    cmu = box(-L, -CMUh, L, CMUh)
+    col = box(-0.25, -0.25, 0.25, 0.25)
+    v.geom(cmu.difference(col), lw="med", fill="white", hatch="ansi31",
+           hatch_kw=dict(spacing=0.06))
+    v.geom(box(-0.25 - 8 * IN, -CMUh + 1.25 * IN, -0.25, CMUh - 1.25 * IN), lw=None, fill="white",
+           hatch="concrete", hatch_kw=dict(scale=0.7), stroke=False)
+    v.geom(box(0.25, -CMUh + 1.25 * IN, 0.25 + 8 * IN, CMUh - 1.25 * IN), lw=None, fill="white",
+           hatch="concrete", hatch_kw=dict(scale=0.7), stroke=False)
+    for xx in (-0.25 - 8 * IN, 0.25 + 8 * IN, -0.25 - 16 * IN - 0.03, 0.25 + 16 * IN + 0.03):
+        v.line((xx, -CMUh), (xx, CMUh), lw="fine")
+    _hss_sec(v, 0.0, 0.0, 6, 6, 3 / 8)
+    _bars(v, [(-0.25 - 4 * IN, 0.0), (0.25 + 4 * IN, 0.0)])
+    for yy in (-CMUh + 0.6 * IN, CMUh - 0.6 * IN):
+        v.line((-0.25, yy * 0.4), (-0.25 - 6 * IN, yy), lw=0.8)
+        v.line((0.25, yy * 0.4), (0.25 + 6 * IN, yy), lw=0.8)
+    _insul_sec(v, -L, L, CMUh, CMUh + 2 * IN) if False else v.rect(-L, CMUh, 2 * L, 2 * IN,
+                                                                     lw="fine", fill="white",
+                                                                     hatch="insul",
+                                                                     hatch_kw=dict(spacing=0.08))
+    v.rect(-L, 7.8125 * IN, 2 * L, 3.625 * IN, lw="thin", fill="white", hatch="brick",
+           hatch_kw=dict(spacing=0.03))
+    # girder from south (on grid) and spandrels (7 1/2" inboard) - plan outlines
+    gy0 = -0.25 - 0.5 * IN
+    v.rect(-3.5 * IN, -3.4, 7 * IN, 3.4 + gy0, lw="thin")
+    v.line((0, -3.4), (0, gy0), lw="hair")
+    _pl(v, -0.2 * IN, gy0, 0.2 * IN, gy0 + 0.01)
+    _pl(v, -0.19 * IN, gy0 - 4.5 * IN, 0.19 * IN, gy0 + 0.01)
+    for k in range(2):
+        v.circle((0.0 + 0.0, gy0 - 1.5 * IN - k * 3 * IN), 0.4 * IN, lw="fine")
+    ys = -OFF
+    for sgn in (-1, 1):
+        xa = sgn * (3.5 * IN + 0.5 * IN)
+        xb = sgn * L
+        v.rect(min(xa, xb), ys - 2.76 * IN, abs(xb - xa), 5.53 * IN, lw="thin")
+        v.line((xa, ys), (xb, ys), lw="hair")
+        _pl(v, sgn * 0.14 * IN, ys - 0.19 * IN, sgn * 4.6 * IN, ys + 0.19 * IN)
+        for k in range(1):
+            v.circle((sgn * 2.4 * IN, ys + 0.42 * IN), 0.35 * IN, lw="fine")
+    _brk_v(v, -L, -0.5, 1.1)
+    _brk_v(v, L, -0.5, 1.1)
+    _brk_h(v, -3.4, -0.6, 0.6)
+    v.line((0, -3.5), (0, 1.9), lw="hair", dash="center")
+    v.line((-2.9, 0), (2.9, 0), lw="hair", dash="center")
+    _ldr(v, (0.2, 0.2), (0.9, 1.75), "HSS6x6 COLUMN (C1) CENTERED ON GRID", "r")
+    _ldr(v, (-0.25 - 4 * IN, 0.0), (-1.0, 1.75), "#5 EA. SIDE OF COLUMN,\nGROUT CELLS SOLID", "l")
+    _ldr(v, (-0.32, CMUh - 0.6 * IN), (-1.0, 1.15), "3/16\" WIRE COLUMN ANCHORS\n@ 16\" O.C. (WELD-ON)", "l")
+    _ldr(v, (-0.6, -0.1), (-1.2, -1.2), "CUT CMU UNITS TO FIT,\n1/2\" MAX. GAP, GROUT", "l")
+    _ldr(v, (-1.6, ys), (-1.2, -2.0), "W16x31 SPANDREL (7 1/2\"\nINBOARD), FRAMES TO\nGIRDER WEB", "l")
+    _ldr(v, (0.2 * IN, gy0 - 2 * IN), (0.6, -2.7), "GIRDER TO COLUMN: PL 1/2\" SHEAR\nTAB WELDED TO HSS, (3) 3/4\" A325-N", "r")
+    _ldr(v, (2.4 * IN, ys + 0.42 * IN), (0.6, -1.25), "SPANDREL TO GIRDER: PL 3/8\",\n(2) 3/4\" A325-N EA. SIDE", "r")
+    _ldr(v, (0.0, -3.0), (-0.6, -3.35), "W24x55 GIRDER", "l")
+    _ldr(v, (1.8, CMUh + 1 * IN), (1.0, 1.1), "INSULATION / BRICK", "r")
+    _dim(v, (0.0, -0.85), (0.0, ys), 0, text="7 1/2\"")
+    _dtitle(sh, cell, 5, "HSS COLUMN EMBEDDED IN CMU (PLAN)", sc)
+    sh.text((cell["x"] + 0.25, cell["y"] + 0.72), "AT CORNER / OFFSET-GIRDER COLUMNS: STIFFENED SEAT PL 3/4x8x9 + PL 1/2 STIFFENER, TOP L4x4x1/4 (SIM.)",
+            size=TXT["tiny"], valign="mid")
+
+
+def d302_tow_perp(sh, cell):
+    sc = 1.0
+    title_h = 0.62
+    hh = (cell["h"] - title_h) / 2
+    # A: wall perpendicular to joists (joist in elevation crosses over the wall)
+    c = dict(x=cell["x"], y=cell["y"] + title_h + hh, w=cell["w"], h=hh)
+    v = sh.view(c["x"] + c["w"] / 2 - 0.3, c["y"] + 0.35, sc, 0.0, 124.5)
+    tw = 125 + 4 * IN
+    _cmu_sec(v, -CMUh, CMUh, 124.6, tw, grout=[(tw - 8 * IN, tw)], course0=114.0)
+    _bars(v, [(-0.1, tw - 0.33), (0.1, tw - 0.33)], 0.5)
+    bc = EL_ROOF - 22 * IN
+    v.rect(-2.2, bc, 4.4, 2.0 * IN, lw="thin")
+    v.rect(-2.2, EL_ROOF - 2.0 * IN, 4.4, 2.0 * IN, lw="thin")
+    for k in range(-2, 2):
+        v.line((k * 1.0 + 0.0, bc + 2 * IN), (k * 1.0 + 0.5, EL_ROOF - 2 * IN), lw="fine")
+        v.line((k * 1.0 + 0.5, EL_ROOF - 2 * IN), (k * 1.0 + 1.0, bc + 2 * IN), lw="fine")
+    v.rect(-2.2, EL_ROOF, 4.4, 1.5 * IN, lw="thin", fill="g20")
+    for sgn in (-1, 1):
+        _ang(v, (sgn * CMUh, bc), 4.0, 4.0, 0.25, hx=sgn, vy=-1) if False else None
+        v.polygon([(sgn * (CMUh + 0.25 * IN), bc), (sgn * (CMUh + 0.25 * IN), tw - 4 * IN),
+                   (sgn * (CMUh + 0.5 * IN), tw - 4 * IN), (sgn * (CMUh + 0.5 * IN), bc - 0.25 * IN),
+                   (sgn * (CMUh + 3.5 * IN), bc - 0.25 * IN), (sgn * (CMUh + 3.5 * IN), bc)],
+                  lw="fine", fill="black")
+    v.rect(-CMUh, tw, 2 * CMUh, bc - tw, lw="fine", fill="g20")
+    _brk_v(v, -2.2, bc - 0.1, EL_ROOF + 0.2)
+    _brk_v(v, 2.2, bc - 0.1, EL_ROOF + 0.2)
+    _brk_h(v, 124.6, -0.5, 0.5)
+    _ldr(v, (1.4, EL_ROOF - 1 * IN), (1.0, 128.75), "K-JOIST (ELEVATION), 1 1/2\" DECK ABOVE", "r")
+    _ldr(v, (CMUh + 2 * IN, bc - 0.1 * IN), (0.9, 125.95), "L4x4x1/4 x 0'-4\" EA. SIDE AT\nEA. JOIST, WELD TO BOTTOM\nCHORD; SLOTTED, NO ANCHOR\nTO CMU (DEFLECTION)", "r")
+    _ldr(v, (0.0, tw + 0.3 * IN), (-0.8, 127.6), "1\" MIN. GAP W/ COMPRESSIBLE\nFILLER (FIRESTOP AT P2)", "l")
+    _ldr(v, (-0.1, tw - 0.33), (-0.8, 125.2), "8\" BOND BEAM,\n(2) #4 CONT.", "l")
+    sh.text((c["x"] + 0.25, c["y"] + hh - 0.12), "A. WALL PERPENDICULAR TO JOISTS (T.O. CMU 125'-4\")",
+            size=TXT["small"], font=FONT_B, valign="top", underline=True)
+    # B: wall under beam
+    c = dict(x=cell["x"], y=cell["y"] + title_h, w=cell["w"], h=hh)
+    v = sh.view(c["x"] + c["w"] / 2 - 0.3, c["y"] + 0.35, sc, 0.0, 109.3)
+    bos = EL_TOS2 - 17.7 * IN
+    tw = bos - 1 * IN
+    _cmu_sec(v, -CMUh, CMUh, 109.4, tw, grout=[(tw - 8 * IN, tw)], course0=100.0)
+    _bars(v, [(-0.1, tw - 0.33), (0.1, tw - 0.33)], 0.5)
+    _wsec(v, 0.0, EL_TOS2, 17.7, 6.0, 0.425, 0.3)
+    v.polygon([(-2.2, EL_TOS2), (2.2, EL_TOS2), (2.2, EL_L2), (-2.2, EL_L2)], lw="thin",
+              fill="white", hatch="concrete", hatch_kw=dict(scale=0.6))
+    v.rect(-CMUh, tw, 2 * CMUh, 1 * IN, lw="fine", fill="g20")
+    for sgn in (-1, 1):
+        v.polygon([(sgn * (CMUh + 0.25 * IN), bos), (sgn * (CMUh + 0.25 * IN), tw - 4 * IN),
+                   (sgn * (CMUh + 0.5 * IN), tw - 4 * IN), (sgn * (CMUh + 0.5 * IN), bos - 0.25 * IN),
+                   (sgn * (3.0 * IN), bos - 0.25 * IN), (sgn * 3.0 * IN, bos)],
+                  lw="fine", fill="black")
+    _brk_v(v, -2.2, EL_TOS2 - 0.1, EL_L2 + 0.1)
+    _brk_v(v, 2.2, EL_TOS2 - 0.1, EL_L2 + 0.1)
+    _brk_h(v, 109.4, -0.5, 0.5)
+    _ldr(v, (0.1, EL_TOS2 - 0.8), (0.9, 113.2), "BEAM ABOVE (W18x35 SHOWN)", "r")
+    _ldr(v, (CMUh + 0.4 * IN, tw - 2 * IN), (0.9, 111.55), "L4x4x1/4 x 0'-4\" EA. SIDE @\n4'-0\" O.C., WELD TO BOTTOM\nFLANGE; DO NOT ANCHOR TO CMU", "r")
+    _ldr(v, (0.0, tw + 0.5 * IN), (-0.8, 112.3), "1\" GAP: COMPRESSIBLE\nFILLER / FIRESTOP", "l")
+    _ldr(v, (-0.1, tw - 0.33), (-0.8, 110.4), "TOP COURSE CUT TO\nFIT; 8\" BOND BEAM", "l")
+    sh.text((c["x"] + 0.25, c["y"] + hh - 0.12), "B. WALL BELOW BEAM (T.O. CMU = B.O.S. - 1\")",
+            size=TXT["small"], font=FONT_B, valign="top", underline=True)
+    _dtitle(sh, cell, 6, "TOP OF CMU - PERPENDICULAR / AT BEAM", sc)
+
+
+def d302_tow_par(sh, cell):
+    sc = 1.0
+    v = _dview(sh, cell, sc, (-3.0, 124.2, 3.0, 129.0), dy=1.35)
+    tw = 127 + 4 * IN
+    _cmu_sec(v, -CMUh, CMUh, 124.4, tw, grout=[(tw - 8 * IN, tw)], course0=114.0)
+    _bars(v, [(-0.1, tw - 0.33), (0.1, tw - 0.33)], 0.5)
+    for xj in (-2.5, 2.5):
+        _ang(v, (xj - 0.15 * IN, EL_ROOF), 2.0, 2.0, 0.1875, hx=-1, vy=-1)
+        _ang(v, (xj + 0.15 * IN, EL_ROOF), 2.0, 2.0, 0.1875, hx=1, vy=-1)
+        v.line((xj, EL_ROOF - 2 * IN), (xj, EL_ROOF - 20 * IN), lw="fine", dash="hidden")
+    v.rect(-2.9, EL_ROOF, 5.8, 1.5 * IN, lw="thin", fill="g20")
+    for k in range(-5, 6):
+        x = k * 0.5
+        v.line((x - 0.12, EL_ROOF + 1.5 * IN), (x - 0.05, EL_ROOF), lw="hair")
+    _ang(v, (CMUh + 0.1 * IN, tw), 3.0, 3.0, 0.25, hx=1, vy=1)
+    v.line((CMUh - 2.5 * IN, tw + 1.5 * IN), (CMUh + 0.4 * IN, tw + 1.5 * IN), lw=1.4)
+    v.polygon([(CMUh + 2.7 * IN, tw + 2.5 * IN), (2.5 - 2 * IN, EL_ROOF - 1.5 * IN),
+               (2.5 - 2 * IN, EL_ROOF - 1.1 * IN), (CMUh + 2.7 * IN, tw + 2.9 * IN)],
+              lw="fine", fill="black")
+    v.line((-CMUh, tw), (-CMUh, tw + 0.01), lw="hair")
+    _brk_h(v, 124.4, -0.5, 0.5)
+    _brk_v(v, -2.9, EL_ROOF - 0.2, EL_ROOF + 0.3)
+    _brk_v(v, 2.9, EL_ROOF - 0.2, EL_ROOF + 0.3)
+    _ldr(v, (-1.4, EL_ROOF + 1.0 * IN), (-1.2, 128.65), "R1 ROOF DECK (1 1/2\" TYPE B)", "l")
+    _ldr(v, (-2.5, EL_ROOF - 1.3 * IN), (-1.6, 126.2), "K-JOIST TOP CHORD\n(JOISTS @ 5'-0\" O.C.)", "l")
+    _ldr(v, (-0.1, tw - 0.33), (-1.0, 125.0), "8\" BOND BEAM, (2) #4 CONT.\nT.O. CMU 127'-4\"", "l")
+    _ldr(v, (CMUh + 1.5 * IN, tw + 1.0 * IN), (1.1, 125.6), "L3x3x1/4 x 0'-6\" CLIP W/ (1) 1/2\"\nADHESIVE ANCHOR INTO BOND BEAM", "r")
+    _ldr(v, (1.2, (tw + EL_ROOF) / 2 + 0.08), (1.3, 128.7), "L2 1/2x2 1/2x1/4 KICKER @ 6'-0\" O.C.,\nALTERNATE SIDES; WELD TO JOIST TOP\nCHORD AT PANEL POINT; BOLT TO CLIP\nW/ 1/2\" A307 IN VERT. SLOT", "r")
+    _dim(v, (-CMUh - 0.3, tw), (-CMUh - 0.3, EL_ROOF), 0, text="8\"")
+    notes = [
+        "TOP OF INTERIOR CMU FOR TAKEOFF: UNDER DECK 113'-4\" (L1) / 127'-4\" (L2) TYPICAL.",
+        "UNDER W12x19 = 112'-4 1/2\"; W16x26 = 112'-1\"; W18x35 = 111'-11\"; W24x55 = 111'-5 1/8\" (L1).",
+        "UNDER ROOF W12x14 TIE = 126'-11\"; W18x35 = 126'-2 3/4\"; PERPENDICULAR TO JOISTS = 125'-4\" (L2).",
+        "CUT TOP COURSE TO SUIT (1\" MIN. GAP). P2 WALLS: FIRESTOP HEAD JOINT (UL SYSTEM, A-502).",
+    ]
+    notes_block(sh, cell["x"] + 0.3, cell["y"] + 2.55, "TOP OF CMU WALL SCHEDULE", notes,
+                cell["w"] - 0.55, size=TXT["small"], title_size=TXT["small"] * 1.2)
+    _dtitle(sh, cell, 7, "TOP OF CMU - PARALLEL TO JOISTS", sc)
+
+
+def d302_joist_brg(sh, cell):
+    sc = 1.5
+    v = _dview(sh, cell, sc, (-2.0, 125.0, 2.0, 129.2))
+    top = EL_ROOF_BM
+    _wsec(v, 0.0, top, 17.7, 6.0, 0.425, 0.3)
+    for sgn, dep, lab in ((1, 22.0, "22K6"), (-1, 12.0, "12K1")):
+        x0 = sgn * 0.5 * IN
+        xs = sgn * 4.0 * IN
+        v.rect(min(x0, xs), top, abs(xs - x0), 2.5 * IN, lw="fine", fill="black")
+        xe = sgn * 1.9
+        v.rect(min(xs, xe), EL_ROOF - 2 * IN, abs(xe - xs), 2 * IN, lw="thin")
+        bc = EL_ROOF - dep * IN
+        xb = sgn * 0.9
+        v.rect(min(xb, xe), bc, abs(xe - xb), 2 * IN, lw="thin")
+        v.line((xs, EL_ROOF - 2 * IN), (xb, bc + 2 * IN), lw="thin")
+        v.line((xb, bc + 2 * IN), (sgn * 1.3, EL_ROOF - 2 * IN), lw="thin")
+        v.line((sgn * 1.3, EL_ROOF - 2 * IN), (sgn * 1.7, bc + 2 * IN), lw="thin")
+        _brk_v(v, xe, bc - 0.1, EL_ROOF + 0.2)
+    v.rect(-1.9, EL_ROOF, 3.8, 1.5 * IN, lw="thin", fill="g20")
+    _ldr(v, (0.0, top - 0.8), (-0.6, 125.3), "W18x35 (GRIDS B & C)", "l")
+    _ldr(v, (0.18, top + 1.2 * IN), (0.7, 128.85), "2 1/2\" JOIST SEAT, 4\" MIN. BEARING;\n(2) 1/8\" x 1\" FILLET WELDS EA. SEAT", "r")
+    _ldr(v, (-1.0, EL_ROOF + 1 * IN), (-0.6, 128.95), "R1 DECK", "l")
+    _ldr(v, (1.3, EL_ROOF - 10 * IN), (0.6, 125.7), "22K6 (A-B / C-D)", "r")
+    _ldr(v, (-1.0, EL_ROOF - 6 * IN), (-0.6, 126.3), "12K1 (B-C)", "l")
+    _lev(v, 1.95, EL_ROOF, "T.O. JOIST", "r")
+    _lev(v, 1.95, top, "T.O. BEAM", "r")
+    _dtitle(sh, cell, 8, "JOIST BEARING ON BEAM", sc)
+
+
+def d302_parapet(sh, cell):
+    sc = 3 / 4
+    v = _dview(sh, cell, sc, (-4.6, 124.8, 4.0, 132.6))
+    ytop = M.LEVELS["PARAPET"]
+    y0 = 125.2
+    _cmu_sec(v, -CMUh, CMUh, y0, ytop, grout=[(127 + 4 * IN, EL_ROOF), (130 + 8 * IN, ytop)])
+    _bars(v, [(-0.1, 127.66), (0.1, 127.66), (-0.1, 131.0), (0.1, 131.0)])
+    v.line((0.0, y0), (0.0, ytop - 0.15), lw=1.0, dash=[4, 2])
+    _insul_sec(v, CMUh, CMUh + 2 * IN, y0, ytop)
+    _brick_sec(v, 7.8125 * IN, 11.4375 * IN, y0, ytop - 0.1, course0=EL_L2)
+    # coping / blocking (by arch)
+    v.rect(-CMUh - 0.05, ytop, 11.4375 * IN + CMUh + 0.1, 3 * IN, lw="fine", dash="hidden")
+    v.polyline([(-CMUh - 0.25, ytop - 0.3), (-CMUh - 0.25, ytop + 0.35), (11.4375 * IN + 0.25, ytop + 0.35),
+                (11.4375 * IN + 0.25, ytop - 0.4)], lw="fine", dash="hidden")
+    # edge beam + joist + deck
+    xe = -OFF
+    _wsec(v, xe, EL_ROOF_BM, 15.7, 5.5, 0.345, 0.25)
+    v.rect(xe - 2.0 * IN, EL_ROOF_BM, 4.5 * IN, 2.5 * IN, lw="fine", fill="black")
+    v.rect(-4.3, EL_ROOF - 2 * IN, 4.3 + xe + 2.5 * IN, 2 * IN, lw="thin")
+    v.rect(-4.3, EL_ROOF - 22 * IN, 2.5, 2 * IN, lw="thin")
+    v.line((xe - 0.35, EL_ROOF - 2 * IN), (-1.8, EL_ROOF - 20 * IN), lw="thin")
+    v.line((-1.8, EL_ROOF - 20 * IN), (-2.6, EL_ROOF - 2 * IN), lw="thin")
+    v.line((-2.6, EL_ROOF - 2 * IN), (-3.4, EL_ROOF - 20 * IN), lw="thin")
+    v.rect(-4.3, EL_ROOF, 4.3 - CMUh, 1.5 * IN, lw="thin", fill="g20")
+    _ang(v, (-CMUh - 0.1 * IN, EL_ROOF), 3.0, 3.0, 0.25, hx=-1, vy=-1)
+    v.line((-CMUh - 0.25, EL_ROOF - 1.5 * IN), (-CMUh + 3 * IN, EL_ROOF - 1.5 * IN), lw=1.4)
+    # roofing (by arch) - tapered insulation outline
+    v.polyline([(-4.3, EL_ROOF + 1.5 * IN + 0.85), (-CMUh, EL_ROOF + 1.5 * IN + 0.85),
+                (-CMUh, ytop - 0.2)], lw="fine", dash="hidden")
+    _brk_v(v, -4.3, EL_ROOF - 2.0, EL_ROOF + 1.2)
+    _brk_h(v, y0, -0.6, 1.1)
+    xl = -1.0
+    _ldr(v, (-0.1, 131.0), (xl, 132.3), "TOP BOND BEAM 130'-8\" TO 131'-4\",\n(2) #5 CONT.; COPING BLOCKING &\nANCHORS BY ARCH. (A-501)", "l")
+    _ldr(v, (0.0, 129.6), (xl, 131.1), "#5 @ 48\" O.C. CONT. INTO PARAPET\n(HOOK AT TOP BOND BEAM)", "l")
+    _ldr(v, (-2.0, EL_ROOF + 2.0), (xl - 0.8, 130.2), "ROOFING / TAPERED INSULATION\n(A-103), BASE FLASHING UP PARAPET", "l")
+    _ldr(v, (-CMUh - 1.5 * IN, EL_ROOF - 1.0 * IN), (xl - 1.0, 129.15), "CONT. L3x3x1/4 DECK EDGE ANGLE W/\n5/8\" ADHESIVE ANCHORS @ 24\" O.C.;\nWELD DECK @ 6\" O.C.", "l")
+    _ldr(v, (-2.0, EL_ROOF + 0.06), (xl - 1.8, 128.4), "R1 DECK", "l")
+    _ldr(v, (xe - 0.1, EL_ROOF_BM - 0.9), (xl - 1.0, 126.4), "W16x26 EDGE BEAM 7 1/2\" INBOARD,\nT.O.S. 127'-9 1/2\"; 22K6 SEAT", "l")
+    _ldr(v, (-0.1, 127.66), (xl - 1.0, 125.5), "ROOF BOND BEAM 127'-4\" TO\n128'-0\", (2) #5", "l")
+    xr = 1.2
+    _ldr(v, (0.4, 126.0), (xr, 126.5), "2\" POLYISO", "r")
+    _ldr(v, (0.8, 129.5), (xr, 129.6), "FACE BRICK (A-501)", "r")
+    _lev(v, 2.7, ytop, "T.O. PARAPET", "r", x_from=1.2)
+    _lev(v, 2.7, EL_ROOF, "T.O. JOIST", "r", x_from=1.2)
+    _dtitle(sh, cell, 9, "ROOF DECK EDGE AT PARAPET", sc)
+
+
+def d302_beam_girder(sh, cell):
+    sc = 1.0
+    v = _dview(sh, cell, sc, (-3.0, 110.7, 3.0, 115.2))
+    tos = EL_TOS2
+    _wsec(v, 0.0, tos, 23.6, 7.0, 0.505, 0.395)
+    for sgn in (-1, 1):
+        x0 = sgn * (0.2 * IN + 0.5 * IN)
+        x1 = sgn * 2.7
+        d = 15.7 * IN
+        v.polygon([(x0, tos - 1.5 * IN), (sgn * 0.5, tos - 1.5 * IN), (sgn * 0.5, tos), (x1, tos),
+                   (x1, tos - d), (x0, tos - d)], lw="thin", fill="white")
+        v.line((sgn * 0.5, tos - 0.345 * IN), (x1, tos - 0.345 * IN), lw="fine")
+        v.line((x0, tos - d + 0.345 * IN), (x1, tos - d + 0.345 * IN), lw="fine")
+        _pl(v, sgn * 0.2 * IN, tos - 2.5 * IN - 9 * IN, sgn * (0.2 * IN + 4.5 * IN), tos - 2.5 * IN)
+        for k in range(3):
+            v.circle((sgn * 2.75 * IN, tos - 4.0 * IN - k * 3 * IN), 0.4 * IN, lw="fine", fill="white")
+        _brk_v(v, x1, tos - d - 0.1, tos + 0.1)
+    # deck profile (ribs perpendicular to view) + slab
+    rib = 12 * IN
+    pts = [(-2.7, tos)]
+    x = -2.7
+    while x < 2.7:
+        pts += [(x + 1.25 * IN, tos), (x + 2.0 * IN, tos + 3 * IN), (x + 6.75 * IN, tos + 3 * IN),
+                (x + 7.5 * IN, tos)]
+        x += rib
+    pts = [p for p in pts if -2.7 <= p[0] <= 2.7]
+    v.polyline(pts, lw="thin")
+    v.polygon([(-2.7, tos + 3 * IN), (2.7, tos + 3 * IN), (2.7, EL_L2), (-2.7, EL_L2)], lw="thin",
+              fill="white", hatch="concrete", hatch_kw=dict(scale=0.6))
+    v.line((-2.7, tos + 3 * IN), (2.7, tos + 3 * IN), lw="hair")
+    for k in range(-2, 3):
+        xx = k * rib + 4.25 * IN - 0.0
+        if abs(xx) < 0.5:
+            continue
+        v.line((xx, tos), (xx, tos + 5.5 * IN), lw=1.6)
+        v.line((xx - 0.6 * IN, tos + 5.5 * IN), (xx + 0.6 * IN, tos + 5.5 * IN), lw=1.6)
+    v.line((0.0, tos), (0.0, tos + 5.5 * IN), lw=1.6)
+    _wwf(v, -2.6, 2.6, EL_L2 - 1 * IN)
+    xl = -0.9
+    _ldr(v, (-1.6, EL_L2 - 0.1), (xl, 114.95), "D1: 3\" 20 GA. COMPOSITE DECK + 3 1/4\" LW CONC.", "l")
+    _ldr(v, (-1.6 + 0.35, tos + 4.5 * IN), (xl - 0.5, 114.45), "3/4\" DIA. x 5 1/2\" HEADED STUDS,\nQTY PER PLAN [n], 1 PER RIB", "l")
+    _ldr(v, (-0.45, tos - 1.0 * IN), (xl - 0.5, 113.2), "COPE TOP FLANGE 1 1/2\" x 4\"", "l")
+    _ldr(v, (-2.0, tos - 0.8), (xl - 0.6, 111.0), "W16x26 INFILL BEAM\n(T.O.S. FLUSH)", "l")
+    xr = 0.9
+    _ldr(v, (0.1, tos - 1.5), (xr, 111.0), "W24x55 GIRDER [24] c=3/4\"", "r")
+    _ldr(v, (0.25, tos - 6.5 * IN), (xr, 112.2), "PL 3/8\" x 4 1/2\" x 9\" SHEAR TAB\nEA. SIDE, 3/16\" FILLET BOTH\nSIDES, (3) 3/4\" A325-N BOLTS (SSL)", "r")
+    _lev(v, 2.75, tos, "T.O. STEEL", "r", value="113'-5 3/4\"")
+    _dtitle(sh, cell, 10, "COMPOSITE BEAM TO GIRDER", sc)
+
+
+def d302_rtu(sh, cell):
+    sc = 1 / 4
+    v = _dview(sh, cell, sc, (33.0, 46.5, 57.0, 64.5), dy=0.6)
+    name, cx, cy = RTUS[0]
+    for x in (35.0, 40.0, 45.0, 50.0, 55.0):
+        v.line((x, 48.0), (x, 63.0), lw="thin")
+    _rtu_frame(v, name, cx, cy)
+    v.line((34.0, 48.0), (56.0, 48.0), lw="hair", dash="hidden")
+    _ldr(v, (36.5, cy - 3.5), (34.0, 47.2), "L4x4x1/4 BETWEEN JOISTS UNDER CURB RAIL,\nWELD TO TOP CHORDS AT PANEL POINTS", "r")
+    _ldr(v, (cx - 7.0, cy + 1.5), (34.0, 64.0), "L4x4x1/4 UNDER N-S CURB RAILS", "r")
+    _ldr(v, (42.5, cy + 0.8), (47.0, 64.5), "DUCT OPENING 3'-0\" x 2'-0\" FRAMED\nW/ L3x3x1/4 (VERIFY W/ DIV. 23)", "r")
+    _ldr(v, (45.0, 50.5), (50.5, 47.2), "JOISTS UNDER CURB MARKED * ON S-103", "r")
+    _dim(v, (cx - 7, cy + 4.6), (cx + 7, cy + 4.6), 0)
+    _dim(v, (cx + 7.6, cy - 3.5), (cx + 7.6, cy + 3.5), 0)
+    notes = [
+        "CURB BY DIV. 23 (14'-0\" x 7'-0\"); RTU-1 / RTU-2 = 3,200 LB, RTU-3 = 2,400 LB OPERATING, APPLIED ON CURB PERIMETER.",
+        "ROOF HATCH 2'-6\" x 3'-0\" (S-103): L4x4x1/4 E-W BETWEEN JOISTS @ 45'-0\" / 50'-0\" + N-S AT HATCH EDGES (SIM.).",
+        "ROOF DRAIN SUMPS: L3x3x1/4 FRAME AROUND DECK OPENING (SIM.).",
+    ]
+    notes_block(sh, cell["x"] + 0.3, cell["y"] + 1.75, "NOTES", notes, cell["w"] - 0.55,
+                size=TXT["small"], title_size=TXT["small"] * 1.2)
+    _dtitle(sh, cell, 11, "RTU SUPPORT FRAME (PLAN, RTU-1 SHOWN)", sc)
+
+
+def d302_existing(sh, cell):
+    title_h = 0.62
+    # elevation 1/4"
+    sc = 1 / 4
+    v = sh.view(cell["x"] + 0.55, cell["y"] + title_h + 3.0, sc, 25.0, 99.333)
+    a, b = 30 + 4 * IN, 42 - 4 * IN
+    hd = 109 + 4 * IN
+    ytop = M.LEVELS["EXIST_ROOF"]
+    v.rect(25.0, 99.333, 22.0, ytop - 99.333, lw="thin", fill="white", hatch="ansi31",
+           hatch_kw=dict(spacing=0.06, col="g50"))
+    v.rect(a, EL_L1, b - a, hd - EL_L1, lw="med", fill="white")
+    v.rect(a - 8 * IN, hd, b - a + 16 * IN, 10 * IN, lw="thin", fill="g40")
+    for xx in (a - 16 * IN, b):
+        v.rect(xx, EL_L1, 16 * IN, hd - EL_L1, lw="thin", fill="white", hatch="concrete",
+               hatch_kw=dict(scale=0.7))
+    for k in range(5):
+        xn = a + 0.3 + k * 2.75
+        v.rect(xn, hd + 1.4, 0.35, 0.5, lw="fine", fill="g20")
+        v.line((xn + 0.17, EL_L1), (xn + 0.17, hd + 1.4), lw="fine", dash="hidden")
+    v.line((25.0, ytop), (47.0, ytop), lw="med")
+    v.line((25.0, EL_L1), (47.0, EL_L1), lw="thin")
+    _brk_v(v, 25.0, 99.0, ytop + 0.3)
+    _brk_v(v, 47.0, 99.0, ytop + 0.3)
+    _dim(v, (a, 100.8), (b, 100.8), 0, text="11'-4\" (VERIFY)")
+    _dim(v, (b + 2.0, EL_L1), (b + 2.0, hd), 0)
+    _ldr(v, (a + 0.47, hd + 1.65), (26.0, 115.8), "TEMP. NEEDLES (W8 OR 6x6 TIMBER)\n@ 2'-9\" O.C. W/ SHORES EA. SIDE", "r")
+    _ldr(v, (b - 1.0, hd + 0.4), (41.0, 115.8), "W10x33 + PL", "r")
+    _ldr(v, (b + 0.5, 104.0), (43.0, 102.0), "NEW GROUTED\nCMU JAMBS", "r")
+    sh.text((cell["x"] + 0.25, cell["y"] + cell["h"] - 0.15), "A. ELEVATION (LOOKING WEST) - 1/4\" = 1'-0\"",
+            size=TXT["small"], font=FONT_B, valign="top", underline=True)
+    # section 3/4"
+    sc2 = 3 / 4
+    v2 = sh.view(cell["x"] + 1.8, cell["y"] + title_h + 0.35, sc2, -1.0, hd - 0.6)
+    x0w, x1w = -1.0, 0.0
+    v2.rect(x0w, hd + 10 * IN, 1.0, 2.0, lw="thin", fill="white", hatch="ansi31",
+            hatch_kw=dict(spacing=0.06, col="g50"))
+    _wsec(v2, -0.62, hd + 10.2 * IN, 10.2, 8.0, 0.435, 0.29)
+    _pl(v2, -1.0 + 0.25 * IN, hd, -0.04, hd + 0.375 * IN)
+    v2.rect(-1.0, hd - 0.5, 1.0, 0.5, lw="hair", dash="hidden")
+    v2.rect(-1.0, hd + 0.375 * IN + 0.0, 1.0, 0.04, lw=None)
+    _brk_h(v2, hd + 10 * IN + 2.0, -1.3, 0.3)
+    _ldr(v2, (-0.5, hd + 2.2), (0.6, hd + 2.4), "EXIST. 12\" BRICK / CMU WALL", "r")
+    _ldr(v2, (-0.4, hd + 0.5), (0.6, hd + 1.5), "W10x33 (TO EXIST. CMU WYTHE)", "r")
+    _ldr(v2, (-0.1, hd + 0.15 * IN), (0.6, hd + 0.75), "PL 3/8\" x 11 1/2\" CONT. WELDED TO\nBOTTOM FLANGE (SUPPORTS BRICK);\nDRY-PACK W/ NON-SHRINK GROUT", "r")
+    _ldr(v2, (-0.5, hd - 0.3), (0.6, hd - 0.2), "OPENING HEAD 109'-4\"", "r")
+    notes = [
+        "WORK ONLY DURING SUMMER RECESS (JUNE 7 - AUG. 13, 2027). EXISTING ROOF JOISTS BEAR ON THIS WALL: SHORE ROOF FRAMING BOTH SIDES BEFORE CUTTING.",
+        "INSTALL NEEDLES THRU WALL ABOVE LINTEL, SAWCUT OPENING, BUILD 16\" GROUTED CMU JAMBS, SET LINTEL 8\" MIN. BEARING EA. END, DRY-PACK; REMOVE SHORES AFTER 72 HRS.",
+        "VERIFY EXISTING WALL CONSTRUCTION AND OPENING SIZE IN FIELD; SEE AD101.",
+    ]
+    notes_block(sh, cell["x"] + 3.15, cell["y"] + title_h + 2.35, "SEQUENCE / NOTES", notes,
+                cell["w"] - 3.35, size=TXT["tiny"] * 1.1, title_size=TXT["small"] * 1.1)
+    sh.text((cell["x"] + 0.25, cell["y"] + title_h + 2.55), "B. SECTION AT LINTEL - 3/4\" = 1'-0\"",
+            size=TXT["small"], font=FONT_B, valign="top", underline=True)
+    _dtitle(sh, cell, 12, "NEW OPENING IN EXISTING EAST WALL", "SCALE: AS NOTED")
+
+
+def d302_link_head(sh, cell):
+    sc = 1 / 2
+    v = _dview(sh, cell, sc, (-6.6, 107.6, 5.2, 117.6))
+    hd = 109 + 4 * IN
+    ptop = M.LEVELS["LINK_PARAPET"]
+    # HSS head beam on grid, CMU above
+    _hss_sec(v, 0.0, hd + 4 * IN, 8, 8, 0.5)
+    _cmu_sec(v, -CMUh, CMUh, hd + 8 * IN, ptop, grout=[(113 + 4 * IN, EL_LINK), (ptop - 8 * IN, ptop)])
+    _insul_sec(v, CMUh, CMUh + 2 * IN, hd + 8 * IN, ptop)
+    _ang(v, (4 * IN, hd + 0.0), 7.0, 4.0, 3 / 8, hx=1, vy=1)
+    _brick_sec(v, 7.8125 * IN, 11.4375 * IN, hd + 3 / 8 * IN, ptop - 0.1, course0=hd + 3 / 8 * IN)
+    # storefront head below
+    v.rect(-0.05, hd - 0.9, 0.38, 0.9, lw="fine")
+    v.line((0.14, hd - 1.6), (0.14, hd - 0.9), lw="thin")
+    # roof beam inboard + purlin elevation + deck
+    _wsec(v, -OFF, EL_LINK, 12.2, 4.0, 0.35, 0.235)
+    v.rect(-5.8, EL_LINK - 8 * IN, 5.8 - OFF - 2.0 * IN, 8 * IN, lw="thin")
+    v.rect(-5.8, EL_LINK, 5.8 - CMUh, 1.5 * IN, lw="thin", fill="g20")
+    _ang(v, (-CMUh - 0.1 * IN, EL_LINK), 3.0, 3.0, 0.25, hx=-1, vy=-1)
+    v.polyline([(-5.8, EL_LINK + 0.8), (-CMUh, EL_LINK + 0.8), (-CMUh, ptop - 0.2)], lw="fine",
+               dash="hidden")
+    v.rect(-0.21, hd - 1.6, 0.42, EL_LINK - hd + 1.6, lw="fine", dash="hidden")
+    _brk_v(v, -5.8, EL_LINK - 1.0, EL_LINK + 1.0)
+    _brk_h(v, hd - 1.6, -0.5, 1.1)
+    xl = -1.2
+    _ldr(v, (-0.1, ptop - 0.33), (xl, 117.3), "LINK PARAPET 116'-8\", 8\" TOP BOND\nBEAM (2) #5; COPING BY ARCH.", "l")
+    _ldr(v, (-3.0, EL_LINK + 0.85), (xl - 1.2, 116.2), "ROOFING (A-103), SLOPE TO\nSCUPPER @ x = -10'-0\"", "l")
+    _ldr(v, (-3.0, EL_LINK + 0.06), (xl - 1.2, 115.3), "R1 DECK, T.O. STEEL 114'-0\"", "l")
+    _ldr(v, (-CMUh - 1 * IN, EL_LINK - 1 * IN), (xl - 1.2, 114.6), "CONT. L3x3x1/4 DECK ANGLE\nW/ 5/8\" ADH. ANCHORS @ 24\"", "l")
+    _ldr(v, (-OFF - 0.1, EL_LINK - 0.6), (xl - 1.2, 113.3), "W12x19 LINK BEAM 7 1/2\"\nINBOARD; W8x10 PURLINS\nFRAME IN (SINGLE PL)", "l")
+    _ldr(v, (-0.21, 111.0), (xl - 1.2, 111.6), "C4 HSS5x5 BEYOND\n(EMBEDDED IN CMU)", "l")
+    _ldr(v, (-0.25, hd + 4 * IN), (xl - 1.2, 110.1), "HSS8x8x1/2 HEAD BEAM\nT.O.S. 110'-0\", SPANS\nBETWEEN LINK COLUMNS", "l")
+    xr = 1.2
+    _ldr(v, (0.85, hd + 0.1), (xr, 111.2), "L7x4x3/8 LLH CONT., WELD TO\nHSS 2\" @ 12\" (BRICK SUPPORT)", "r")
+    _ldr(v, (0.14, hd - 1.0), (xr, 109.0), "SF-3 HEAD (A-312); DEFLECTION\nRECEPTOR 1/2\"", "r")
+    _ldr(v, (0.0, 112.5), (xr, 113.4), "8\" CMU ON HSS, #5 @ 48\"\n+ (1) #5 EA. SIDE OF COL.", "r")
+    _lev(v, 3.4, EL_LINK, "LINK ROOF", "r", x_from=1.1)
+    _lev(v, 3.4, ptop, "T.O. PARAPET", "r", x_from=1.1)
+    _lev(v, 3.4, hd, "SF-3 HEAD", "r", x_from=1.1)
+    _dtitle(sh, cell, 13, "LINK STOREFRONT HEAD / ROOF EDGE", sc)
+
+
+def s302(sh):
+    cells = sh.cells(5, 3, lines=False)
+    X0, X1, Y0, Y1 = sh.x0, sh.x1, sh.y0, sh.y1
+    cw, ch = (X1 - X0) / 5, (Y1 - Y0) / 3
+    for r in (1, 2):
+        sh.line((X0, Y1 - r * ch), (X1, Y1 - r * ch), lw="fine")
+    sh.line((X0 + 2 * cw, Y1 - ch), (X0 + 2 * cw, Y1), lw="fine")
+    sh.line((X0 + 4 * cw, Y1 - ch), (X0 + 4 * cw, Y1), lw="fine")
+    for k in range(1, 5):
+        sh.line((X0 + k * cw, Y0), (X0 + k * cw, Y1 - ch), lw="fine")
+    d302_cmu_elev(sh, sh.merge_cells(cells, [0, 1]))
+    d302_lintels(sh, sh.merge_cells(cells, [2, 3]))
+    d302_lintel_sec(sh, cells[4])
+    d302_shelf(sh, cells[5])
+    d302_column(sh, cells[6])
+    d302_tow_perp(sh, cells[7])
+    d302_tow_par(sh, cells[8])
+    d302_joist_brg(sh, cells[9])
+    d302_parapet(sh, cells[10])
+    d302_beam_girder(sh, cells[11])
+    d302_rtu(sh, cells[12])
+    d302_existing(sh, cells[13])
+    d302_link_head(sh, cells[14])
+
+
 # ----------------------------------------------------------------------------------------
 SHEETS = [
     ("S-101", "FOUNDATION PLAN", s101),
     ("S-102", "SECOND FLOOR FRAMING PLAN", s102),
     ("S-103", "ROOF FRAMING PLAN", s103),
     ("S-301", "FOUNDATION SECTIONS\nAND DETAILS", s301),
+    ("S-302", "MASONRY AND STEEL\nDETAILS", s302),
 ]
